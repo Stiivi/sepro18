@@ -1,17 +1,22 @@
 // Sepro 2018 - Model
 //
 
-typealias Symbol = String
+public typealias Symbol = String
+
+public enum SymbolType {
+    case tag
+    case slot
+}
 
 // Basic types
 //
 
-enum Presence {
+public enum Presence {
     case present
     case absent
 }
 
-struct SymbolMask {
+public struct SymbolMask {
     let mask: [Symbol:Presence]
 
     var presentSymbols: Set<Symbol> {
@@ -39,17 +44,17 @@ struct SymbolMask {
 }
 
 /// Pattern matching an object based on presence or absence of tags or synbols
-struct SelectorPattern {
+public struct SelectorPattern {
     let tags: SymbolMask
     let slots: SymbolMask
 }
 
-enum Selector {
+public enum Selector {
     case all
     case match([SubjectMode:SelectorPattern])
 }
 
-enum SubjectMode: Hashable {
+public enum SubjectMode: Hashable {
     case direct
     case indirect(Symbol)
 }
@@ -58,20 +63,20 @@ enum SubjectMode: Hashable {
 // Unary
 // =====
 
-enum UnaryTarget {
+public enum UnaryTarget {
     case none
     case subject
     case direct(Symbol)
     case indirect(Symbol, Symbol)
 }
 
-struct UnaryTransition {
+public struct UnaryTransition {
     
     let tags: SymbolMask
     let bindings: [Symbol: UnaryTarget]
 }
 
-struct UnaryActuator {
+public struct UnaryActuator {
     let selector: Selector
     let transitions: [SubjectMode:UnaryTransition]
 
@@ -83,18 +88,18 @@ struct UnaryActuator {
 // Binary
 // ======
 
-enum BinaryTarget {
+public enum BinaryTarget {
     case none
     case other
     case inOther(Symbol)
 }
 
-struct BinaryTransition {
+public struct BinaryTransition {
     let tags: SymbolMask
     let bindings: [Symbol: BinaryTarget]
 }
 
-struct BinaryActuator {
+public struct BinaryActuator {
     let leftSelector: Selector
     let rightSelector: Selector
 
@@ -109,8 +114,10 @@ struct BinaryActuator {
 
 
 
-class Model {
-    var unaryActuators: [UnaryActuator] = []
-    var binaryActuators: [BinaryActuator] = []
+public class Model {
+    public var symbols: [Symbol:SymbolType] = [:]
+    public var unaryActuators: [UnaryActuator] = []
+    public var binaryActuators: [BinaryActuator] = []
+
 }
 
