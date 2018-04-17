@@ -11,6 +11,7 @@
 /// Parser Token
 
 import Foundation
+import protocol ParserCombinator.EmptyCheckable
 
 public enum TokenKind: Equatable, CustomStringConvertible {
     case empty
@@ -40,6 +41,9 @@ public enum TokenKind: Equatable, CustomStringConvertible {
         }
     }
 }
+
+
+// TODO: Rewrite according to SExpr
 
 /// Line and column text position. Starts at line 1 and column 1.
 public struct TextPosition: CustomStringConvertible {
@@ -112,6 +116,14 @@ public struct Token: CustomStringConvertible, CustomDebugStringConvertible {
 
 }
 
+// TODO: Technical debt
+extension Token: EmptyCheckable {
+    public static var emptyValue: Token {
+        return Token(.empty, text: "", position: TextPosition())
+    }
+    public var isEmpty: Bool { return self.kind == .empty }
+}
+
 public func ==(token: Token, kind: TokenKind) -> Bool {
     return token.kind == kind
 }
@@ -127,7 +139,7 @@ let DecimalDigitCharacterSet = CharacterSet.decimalDigits
 
 var IdentifierStart = CharacterSet.letters | "_"
 var IdentifierCharacters = CharacterSet.alphanumerics | "_"
-var OperatorCharacters =  CharacterSet(charactersIn: ".,*=():")
+var OperatorCharacters =  CharacterSet(charactersIn: ".()!")
 
 // Single quote: Symbol, Triple quote: Docstring
 let CommentStart: UnicodeScalar = "#"

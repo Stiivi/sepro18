@@ -1,18 +1,29 @@
 // Sepro 2018 - Model
 //
 
-typealias Symbol = String
+public typealias Symbol = String
+
+/// Type of a symbol within a model.
+///
+public enum SymbolType {
+    /// Symbol is not defined within the model
+    case undefined
+    /// Symbol represents a slot
+    case slot
+    /// Symbol represents a tag
+    case tag
+}
 
 // Basic types
 //
 
-enum Presence {
+public enum Presence {
     case present
     case absent
 }
 
-struct SymbolMask {
-    let mask: [Symbol:Presence]
+public struct SymbolMask {
+    public let mask: [Symbol:Presence]
 
     var presentSymbols: Set<Symbol> {
         let result = mask.filter {
@@ -39,17 +50,17 @@ struct SymbolMask {
 }
 
 /// Pattern matching an object based on presence or absence of tags or synbols
-struct SelectorPattern {
-    let tags: SymbolMask
-    let slots: SymbolMask
+public struct SelectorPattern {
+    public let tags: SymbolMask
+    public let slots: SymbolMask
 }
 
-enum Selector {
+public enum Selector {
     case all
     case match([SubjectMode:SelectorPattern])
 }
 
-enum SubjectMode: Hashable {
+public enum SubjectMode: Hashable {
     case direct
     case indirect(Symbol)
 }
@@ -58,59 +69,105 @@ enum SubjectMode: Hashable {
 // Unary
 // =====
 
-enum UnaryTarget {
+public enum UnaryTarget {
     case none
     case subject
     case direct(Symbol)
     case indirect(Symbol, Symbol)
 }
 
-struct UnaryTransition {
+public struct UnaryTransition {
     
-    let tags: SymbolMask
-    let bindings: [Symbol: UnaryTarget]
+    public let tags: SymbolMask
+    public let bindings: [Symbol: UnaryTarget]
 }
 
-struct UnaryActuator {
-    let selector: Selector
-    let transitions: [SubjectMode:UnaryTransition]
+public struct UnaryActuator {
+    public let selector: Selector
+    public let transitions: [SubjectMode:UnaryTransition]
 
-    let notifications: Set<Symbol>
-    let traps: Set<Symbol>
-    let halts: Bool
+    public let notifications: Set<Symbol>
+    public let traps: Set<Symbol>
+    public let halts: Bool
 }
 
 // Binary
 // ======
 
-enum BinaryTarget {
+public enum BinaryTarget {
     case none
     case other
     case inOther(Symbol)
 }
 
-struct BinaryTransition {
-    let tags: SymbolMask
-    let bindings: [Symbol: BinaryTarget]
+public struct BinaryTransition {
+    public let tags: SymbolMask
+    public let bindings: [Symbol: BinaryTarget]
 }
 
-struct BinaryActuator {
-    let leftSelector: Selector
-    let rightSelector: Selector
+public struct BinaryActuator {
+    public let leftSelector: Selector
+    public let rightSelector: Selector
 
-    let leftTransitions: [SubjectMode:BinaryTransition]
-    let rightTransitions: [SubjectMode:BinaryTransition]
+    public let leftTransitions: [SubjectMode:BinaryTransition]
+    public let rightTransitions: [SubjectMode:BinaryTransition]
 
-    let notifications: Set<Symbol>
-    let traps: Set<Symbol>
-    let halts: Bool
+    public let notifications: Set<Symbol>
+    public let traps: Set<Symbol>
+    public let halts: Bool
 }
 
+public struct Prototype {
+    public let tags: [Symbol]
+}
 
+public struct DuplicatedPrototype {
+    public let count: Int
+    public let prototype: Prototype
+}
 
+public struct Structure {
+    public let prototypes: [DuplicatedPrototype]
+}
 
-class Model {
-    var unaryActuators: [UnaryActuator] = []
-    var binaryActuators: [BinaryActuator] = []
+/// Sepro model description.
+///
+public class Model {
+    // FIXME: Make all properties immutable (let)
+    //        - they are made mutable for the compiler
+    //
+    public var symbols: [Symbol:SymbolType] = [:]
+    public var unaryActuators: [String:UnaryActuator] = [:]
+    public var binaryActuators: [String:BinaryActuator] = [:]
+    public var structures: [String:Structure] = [:]
+
+    /// - Returns: Type of a symbol `symbol`. If symbol is not defined, then
+    /// returns `SymbolType.undefined`
+    public func typeOf(symbol: Symbol) -> SymbolType {
+        return symbols[symbol] ?? .undefined
+    }
+
+    // Mutation methods
+    // ================
+
+    /// Define a symbol `symbol` to be of `type` if it is not defined.
+    /// - Returns: `true` if the symbol was successfully defined or if symbol
+    /// existed and was of the same type. Returns `false` if the symbol was
+    /// already defined but was of another type.
+
+    @discardableResult
+    public func define(symbol: Symbol, type: SymbolType) -> Bool {
+        if let previous = symbols[symbol] {
+            if previous == type {
+                return true
+            } 
+            else {
+                return false
+            }
+        }
+
+        symbols[symbol] = type
+        return true
+    }
 }
 
