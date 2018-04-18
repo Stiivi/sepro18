@@ -122,14 +122,18 @@ class Compiler {
         //
         let (_, dupes) = expandedMatches.map {
             ModeSymbol(mode: $0.mode, symbol: $0.symbol)  
-        }.reduce((Set<ModeSymbol>(), Set<ModeSymbol>())) {
+        }.reduce(into: (Set<ModeSymbol>(), Set<ModeSymbol>())) {
             state, next in
-            let (seen, dupes) = state
-            if seen.contains(next) {
-                return (seen: seen, dupes: dupes)
+            // Tuple items:
+            // 0 - seen
+            // 1 - dupes
+            if state.0.contains(next) {
+                // seen -> goes into dupes
+                state.1.insert(next)
             }
             else {
-                return (seen: seen, dupes: dupes)
+                // not seen -> goes into seen
+                state.0.insert(next)
             }
         }
     
