@@ -1,0 +1,21 @@
+# This is a jar
+#
+
+DEF SLOT neck
+def tag jar
+def tag lid
+
+act bind
+    where (jar !neck)
+    on (lid !used)
+    in left
+        bind neck to right
+    
+    in right
+        set used
+
+struct main
+    10 (jar)
+    10 (lid)
+
+
