@@ -6,22 +6,37 @@ public typealias Symbol = String
 /// Type of a symbol within a model.
 ///
 public enum SymbolType {
-    /// Symbol is not defined within the model
-    case undefined
     /// Symbol represents a slot
     case slot
     /// Symbol represents a tag
     case tag
+    case structure
+    case actuator
+
+    init?(name: String) {
+        switch name {
+        case "slot": self = .slot
+        case "tag": self = .tag
+        case "structure": self = .structure
+        case "actuator": self = .actuator
+        default: return nil
+        }
+    }
 }
 
 // Basic types
 //
 
+/// Type used in a symbol mask specifying whether a matched symbol should be
+/// present or not.
+///
 public enum Presence {
     case present
     case absent
 }
 
+/// Mask for symbol matching in a selector
+///
 public struct SymbolMask {
     public let mask: [Symbol:Presence]
 
@@ -50,18 +65,27 @@ public struct SymbolMask {
 }
 
 /// Pattern matching an object based on presence or absence of tags or synbols
+///
 public struct SelectorPattern {
     public let tags: SymbolMask
     public let slots: SymbolMask
 }
 
+/// Object specifying which objects to select based on a pattern matching mask.
+///
 public enum Selector {
+    /// Match all objects.
     case all
+    /// Match only objects matching a patter.
     case match([SubjectMode:SelectorPattern])
 }
 
+/// Type specifying indirection of a subject to be considered in a selector.
+///
 public enum SubjectMode: Hashable {
+    /// Refers to a direct subject
     case direct
+    /// Refers to a slot in a subject
     case indirect(Symbol)
 }
 
@@ -143,8 +167,8 @@ public class Model {
 
     /// - Returns: Type of a symbol `symbol`. If symbol is not defined, then
     /// returns `SymbolType.undefined`
-    public func typeOf(symbol: Symbol) -> SymbolType {
-        return symbols[symbol] ?? .undefined
+    public func typeOf(symbol: Symbol) -> SymbolType? {
+        return symbols[symbol]
     }
 
     // Mutation methods
