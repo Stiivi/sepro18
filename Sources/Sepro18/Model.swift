@@ -193,5 +193,13 @@ public class Model {
         symbols[symbol] = type
         return true
     }
+
+    public func setActuator(unary: UnaryActuator, name: String) {
+        unaryActuators[name] = unary
+    }
+
+    public func setActuator(binary: BinaryActuator, name: String) {
+        binaryActuators[name] = binary
+    }
 }
 

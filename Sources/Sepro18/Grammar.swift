@@ -53,8 +53,20 @@ let define =
 //
 
 let qualified_symbol =
-    option(%"indirect" <* op(".")) + %"symbol"
-        => { ASTQualifiedSymbol(qualifier: $0.0, symbol: $0.1) }
+    %"symbol" + option(op(".") *> %"symbol") =>
+        {
+            (left, right) in
+
+            ASTQualifiedSymbol(
+                // If there is left.right, then qualifier is the left side,
+                // otherwise we don't have the qualifier.
+                qualifier: right.map { _ in left },
+                // If there is left.right, then the symbol is the right side,
+                // otherwise the left side (without dot) is the
+                // symbol
+                symbol: right.map { $0 } ?? left
+            )
+        }
 
 
 let symbol_presence =
@@ -67,26 +79,41 @@ let selector =
     || ^"ALL" => { _ in ASTSelector.all }
 
 
-let trans =
-    (^"BIND" *> qualified_symbol)
-        + (^"TO" *> qualified_symbol) => ASTTransition.bind
-    || ^"UNBIND" *> qualified_symbol  => ASTTransition.unbind
-    || ^"SET" *> %"tag"               => ASTTransition.set
-    || ^"UNSET" *> %"tag"             => ASTTransition.unset
-
-
 let modifier =
-    (^"IN" *> qualified_symbol) + many(trans)
-        => { ASTModifier(target: $0.0, transitions: $0.1) }
+    (^"BIND" *> qualified_symbol)
+        + (^"TO" *> qualified_symbol) => ASTModifier.bind
+    || ^"UNBIND" *> qualified_symbol  => ASTModifier.unbind
+    || ^"SET" *> %"tag"               => ASTModifier.set
+    || ^"UNSET" *> %"tag"             => ASTModifier.unset
 
 
-// FIXME: Clean-up this rule a bit to get rid of those unclear tuple references
-let actuator =
-    ((^"ACT" *> %"name")
-    + ((^"WHERE" *> selector) + option(^"ON" *> selector)))
-    + many(modifier)
-    => { ASTModelObject.actuator($0.0.0, $0.0.1.0, $0.0.1.1, $0.1) }
+let unary_subject =
+    ^"THIS" + option(op(".") *> %"slot") => { ASTSubject(side: $0.0, slot: $0.1) }
+    || ^"slot" => { ASTSubject(side: "this", slot: $0) }
 
+
+let binary_subject =
+    (^"LEFT" || ^"RIGHT") + option(op(".") *> %"slot")
+        => { ASTSubject(side: $0.0, slot: $0.1) }
+
+let unary_transition =
+    (^"IN" *> unary_subject + many(modifier))
+        => { ASTTransition(subject: $0.0, modifiers: $0.1) }
+
+let unary_actuator =
+    ((^"ACT" *> %"name") + (^"WHERE" *> selector)) + many(unary_transition)
+        => { ASTModelObject.unaryActuator($0.0.0, $0.0.1, $0.1) }
+
+
+let binary_transition =
+    (^"IN" *> binary_subject + many(modifier))
+        => { ASTTransition(subject: $0.0, modifiers: $0.1) }
+
+
+let binary_actuator =
+    ((^"REACT" *> %"name") + (^"WHERE" *> selector))
+    + ((^"ON" *> selector) + many(binary_transition))
+        => { ASTModelObject.binaryActuator($0.0.0, $0.0.1, $0.1.0, $0.1.1) }
 
 let tag_list =
     op("(") *> many(%"tag") <* op(")")
@@ -103,7 +130,8 @@ let structure =
 
 let model_object =
     define
-    || actuator
+    || unary_actuator
+    || binary_actuator
     || structure
 
 

@@ -13,7 +13,8 @@ struct ASTTypedSymbol {
 
 enum ASTModelObject {
     case define(String, String)
-    case actuator(String, ASTSelector, ASTSelector?, [ASTModifier])
+    case unaryActuator(String, ASTSelector, [ASTTransition])
+    case binaryActuator(String, ASTSelector, ASTSelector, [ASTTransition])
     case structure(String, [ASTStructItem])
 
     var symbols: [ASTTypedSymbol] {
@@ -23,10 +24,15 @@ enum ASTModelObject {
         case let .define(type, sym):
             result = [ASTTypedSymbol(sym, type: SymbolType(name: type))]
 
-        case let .actuator(name, lsel, rsel, mods):
+        case let .unaryActuator(name, sel, mods):
+            result = [ASTTypedSymbol(name, type: .actuator)]
+                     + sel.symbols
+                     + mods.flatMap { $0.symbols } 
+
+        case let .binaryActuator(name, lsel, rsel, mods):
             result = [ASTTypedSymbol(name, type: .actuator)]
                      + lsel.symbols
-                     + (rsel?.symbols ?? [])
+                     + rsel.symbols
                      + mods.flatMap { $0.symbols } 
 
         case let .structure(name, items):
@@ -59,16 +65,7 @@ struct ASTMatch {
     }
 }
 
-struct ASTModifier {
-    let target: ASTQualifiedSymbol
-    let transitions: [ASTTransition]
-
-    var symbols: [ASTTypedSymbol] {
-        return target.symbols + transitions.flatMap { $0.symbols }
-    }
-}
-
-enum ASTTransition {
+enum ASTModifier {
     case bind(ASTQualifiedSymbol, ASTQualifiedSymbol)
     case unbind(ASTQualifiedSymbol)
     case set(String)
@@ -100,6 +97,17 @@ enum ASTTransition {
     }
 }
 
+// Model equivalent: Unary/Binary transition
+struct ASTTransition {
+    let subject: ASTSubject
+    let modifiers: [ASTModifier]
+
+    var symbols: [ASTTypedSymbol] {
+        return subject.symbols + modifiers.flatMap { $0.symbols }
+    }
+}
+
+
 struct ASTStructItem {
     let count: Int
     let tags: [String]
@@ -128,3 +136,12 @@ struct ASTQualifiedSymbol {
     }
 }
 
+struct ASTSubject {
+    // THIS, LEFT, RIGHT
+    let side: String
+    let slot: String?
+
+    var symbols: [ASTTypedSymbol] {
+        return slot.map { [ASTTypedSymbol($0, type: .slot)] } ?? []
+    }
+}

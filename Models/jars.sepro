@@ -5,7 +5,7 @@ DEF SLOT neck
 def tag jar
 def tag lid
 
-act bind
+react bind
     where (jar !neck)
     on (lid !used)
     in left

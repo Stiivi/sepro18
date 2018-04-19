@@ -49,13 +49,17 @@ class Compiler {
         case let .define(typeName, symbol):
             compileDefine(typeName:typeName, symbol:symbol)
 
-        case let .actuator(name, lselector, rselector, modifiers):
-            compileActuator(name: name,
+        case let .unaryActuator(name, selector, transitions):
+            compileUnaryActuator(name: name,
+                            selector: selector,
+                            transitions: transitions)
+        case let .binaryActuator(name, lselector, rselector, transitions):
+            compileBinaryActuator(name: name,
                             leftSelector: lselector,
                             rightSelector: rselector,
-                            modifiers: modifiers)
+                            transitions: transitions)
 
-        case let .structure:
+        case .structure(_):
             fatalError("not implemented")
         }
     }
@@ -65,16 +69,28 @@ class Compiler {
         // Phase I.
     }
 
-    func compileActuator(name: String, leftSelector: ASTSelector,
-            rightSelector: ASTSelector?, modifiers: [ASTModifier]) {
-  
-        // FIXME: Require ALL kind of actuator
+    func compileUnaryActuator(name: String, selector: ASTSelector,
+                              transitions: [ASTTransition]) {
+        let actuator: UnaryActuator
+        let compiledSelector: Selector = compileSelector(selector)
 
-        let leftCompiled: Selector
-        let rightCompiled   : Selector?
+        actuator = UnaryActuator(
+            selector: compiledSelector,
+            transitions: [:],
+            notifications: Set(),
+            traps: Set(),
+            halts: false
+        )                               
 
-        leftCompiled = compileSelector(leftSelector)
-        rightCompiled = rightSelector.map { compileSelector($0) }
+        model.setActuator(unary: actuator, name: name)
+    }
+
+    func compileBinaryActuator(name: String, leftSelector: ASTSelector,
+            rightSelector: ASTSelector, transitions: [ASTTransition]) {
+        let actuator: BinaryActuator
+        let leftCompiled: Selector = compileSelector(leftSelector)
+        let rightCompiled: Selector = compileSelector(rightSelector)
+
     }
 
     func compileSelector(_ selector: ASTSelector) -> Selector {
