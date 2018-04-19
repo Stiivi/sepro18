@@ -218,7 +218,7 @@ class Simulator {
 
         // Unary actuators
         // ---------------
-        model.unaryActuators.forEach {
+        model.unaryActuators.values.forEach {
             actuator in
 
             container.select(actuator.selector).forEach {
@@ -230,7 +230,7 @@ class Simulator {
         // Binary actuators
         // ----------------
 
-        model.binaryActuators.forEach {
+        model.binaryActuators.values.forEach {
             actuator in
             let leftOnes = container.select(actuator.leftSelector)
             let rightOnes = container.select(actuator.rightSelector)

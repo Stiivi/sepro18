@@ -74,13 +74,21 @@ class Compiler {
         let actuator: UnaryActuator
         let compiledSelector: Selector = compileSelector(selector)
 
-        let compliedTransitions = transitions.map {
-            compileUnaryTransition($0)
+        let transList: [(SubjectMode, UnaryTransition)]
+
+        transList = transitions.map {
+            trans in
+            let mode: SubjectMode
+            mode = trans.subject.slot.map { .indirect($0) } ?? .direct
+            return (mode, compileUnaryTransition(trans))
         }
 
+        let transDict = Dictionary(transList, uniquingKeysWith: { (_, last) in last })
+
+        // TODO: notifications, traps and halts
         actuator = UnaryActuator(
             selector: compiledSelector,
-            transitions: [:],
+            transitions: transDict,
             notifications: Set(),
             traps: Set(),
             halts: false
@@ -89,15 +97,8 @@ class Compiler {
         model.setActuator(unary: actuator, name: name)
     }
 
-    func compileUnaryTransition(_ trans: ASTTransition) -> UnaryTransition {
-        // We need to convert:
-        //      modifiers -> tags
-        //      modifiers -> bindings
-
-        // 1. Compile tags
-        //
-        let modifiers = trans.modifiers
-
+    // Extracts SymbolMask from modifiers
+    func tagMaskFromModifies(_ modifiers: [ASTModifier]) -> SymbolMask {
         let maskList: [(String, Presence)] = modifiers.compactMap {
             switch $0 {
             case let .set(sym): return (sym, .present)
@@ -109,6 +110,20 @@ class Compiler {
         // FIXME: check for dupes
         // Current implementation: take the latest in the list
         let mask = Dictionary(maskList, uniquingKeysWith: { (_, last) in last })
+   
+        return SymbolMask(mask: mask)
+    }
+
+    func compileUnaryTransition(_ trans: ASTTransition) -> UnaryTransition {
+        // We need to convert:
+        //      modifiers -> tags
+        //      modifiers -> bindings
+
+        // 1. Compile tags
+        //
+        let modifiers = trans.modifiers
+
+        let mask = tagMaskFromModifies(trans.modifiers)
 
         // 2. Compile bindings
         //
@@ -147,16 +162,101 @@ class Compiler {
         let bindings = Dictionary(bindList,
                                   uniquingKeysWith: { (_, last) in last })
 
-        return UnaryTransition(tags: SymbolMask(mask: mask),
-                               bindings: bindings)
+        return UnaryTransition(tags: mask, bindings: bindings)
+
+    }
+
+    func compileBinaryTransition(_ trans: ASTTransition) -> BinaryTransition {
+        // We need to convert:
+        //      modifiers -> tags
+        //      modifiers -> bindings
+
+        // 1. Compile tags
+        //
+        let modifiers = trans.modifiers
+        let mask = tagMaskFromModifies(trans.modifiers)
+
+        // 2. Compile bindings
+        //
+
+        // FIXME: This is not OK, we can't have qualified symbol here
+        // we need to replace it with proper target
+        let bindList: [(String, BinaryTarget)] = modifiers.compactMap {
+            switch $0 {
+            case let .bind(slot, target):
+                // THIS -> .subject
+                // slot -> direct(slot)
+                // THIS.slot -> direct(slot)
+                // slot.slot -> indirect (slot, slot)
+                if let qual = target.qualifier {
+                    if qual == "OTHER" {
+                        return (slot, .inOther(target.symbol))            
+                    }
+                    else {
+                        fatalError("Indirection in biary actuator: \(qual).\(slot)")
+                    }
+                }
+                else {
+                    if target.symbol == "OTHER" {
+                        return (slot, .other)
+                    } 
+                    else {
+                        // TODO: Should we allow that?
+                        // This can be done through tags as non-atomic
+                        fatalError("Self-binding in binary actuator: \(slot)")
+                    }
+                }
+            case let .unset(slot):
+                return (slot, .none)
+            default:
+                return nil
+            }
+        }
+        let bindings = Dictionary(bindList,
+                                  uniquingKeysWith: { (_, last) in last })
+
+        return BinaryTransition(tags: mask, bindings: bindings)
 
     }
 
     func compileBinaryActuator(name: String, leftSelector: ASTSelector,
             rightSelector: ASTSelector, transitions: [ASTTransition]) {
-        let actuator: BinaryActuator
         let leftCompiled: Selector = compileSelector(leftSelector)
         let rightCompiled: Selector = compileSelector(rightSelector)
+
+        let leftTransList = transitions.filter {
+            $0.subject.side == "LEFT"
+        }.map {
+            trans in
+            (trans.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
+             compileBinaryTransition(trans))
+        }
+        let leftTrans = Dictionary(leftTransList,
+                                   uniquingKeysWith: { (_, last) in last })
+
+        let rightTransList = transitions.filter {
+            $0.subject.side == "RIGHT"
+        }.map {
+            trans in
+            (trans.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
+             compileBinaryTransition(trans))
+        }
+        let rightTrans = Dictionary(rightTransList,
+                                   uniquingKeysWith: { (_, last) in last })
+
+        // TODO: Add control signals
+        let actuator = BinaryActuator(
+            leftSelector: leftCompiled,
+            rightSelector: rightCompiled,
+            leftTransitions: leftTrans,
+            rightTransitions: rightTrans,
+            notifications: Set(),
+            traps: Set(),
+            halts: false
+        )
+
+        model.setActuator(binary: actuator, name: name)
+
 
     }
 
