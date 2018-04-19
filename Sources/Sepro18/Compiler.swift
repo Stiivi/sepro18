@@ -74,6 +74,10 @@ class Compiler {
         let actuator: UnaryActuator
         let compiledSelector: Selector = compileSelector(selector)
 
+        let compliedTransitions = transitions.map {
+            compileUnaryTransition($0)
+        }
+
         actuator = UnaryActuator(
             selector: compiledSelector,
             transitions: [:],
@@ -83,6 +87,69 @@ class Compiler {
         )                               
 
         model.setActuator(unary: actuator, name: name)
+    }
+
+    func compileUnaryTransition(_ trans: ASTTransition) -> UnaryTransition {
+        // We need to convert:
+        //      modifiers -> tags
+        //      modifiers -> bindings
+
+        // 1. Compile tags
+        //
+        let modifiers = trans.modifiers
+
+        let maskList: [(String, Presence)] = modifiers.compactMap {
+            switch $0 {
+            case let .set(sym): return (sym, .present)
+            case let .unset(sym): return (sym, .absent)
+            default: return nil
+            }
+        }
+
+        // FIXME: check for dupes
+        // Current implementation: take the latest in the list
+        let mask = Dictionary(maskList, uniquingKeysWith: { (_, last) in last })
+
+        // 2. Compile bindings
+        //
+
+        // FIXME: This is not OK, we can't have qualified symbol here
+        // we need to replace it with proper target
+        let bindList: [(String, UnaryTarget)] = modifiers.compactMap {
+            switch $0 {
+            case let .bind(slot, target):
+                // THIS -> .subject
+                // slot -> direct(slot)
+                // THIS.slot -> direct(slot)
+                // slot.slot -> indirect (slot, slot)
+                if let qual = target.qualifier {
+                    if qual == "THIS" {
+                        return (slot, .direct(target.symbol))            
+                    }
+                    else {
+                        return (slot, .indirect(qual, target.symbol))            
+                    }
+                }
+                else {
+                    if target.symbol == "THIS" {
+                        return (slot, .subject)
+                    } 
+                    else {
+                        return (slot, .direct(target.symbol))
+                    }
+                }
+            case let .unset(slot):
+                return (slot, .none)
+            default:
+                return nil
+            }
+        }
+        let bindings = Dictionary(bindList,
+                                  uniquingKeysWith: { (_, last) in last })
+
+        return UnaryTransition(tags: SymbolMask(mask: mask),
+                               bindings: bindings)
+
     }
 
     func compileBinaryActuator(name: String, leftSelector: ASTSelector,

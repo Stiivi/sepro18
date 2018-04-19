@@ -80,9 +80,9 @@ let selector =
 
 
 let modifier =
-    (^"BIND" *> qualified_symbol)
+    (^"BIND" *> ^"slot")
         + (^"TO" *> qualified_symbol) => ASTModifier.bind
-    || ^"UNBIND" *> qualified_symbol  => ASTModifier.unbind
+    || ^"UNBIND" *> ^"slot"           => ASTModifier.unbind
     || ^"SET" *> %"tag"               => ASTModifier.set
     || ^"UNSET" *> %"tag"             => ASTModifier.unset
 

@@ -65,9 +65,11 @@ struct ASTMatch {
     }
 }
 
+// Model equivalent: unary/binary target and bindings in unary/binary trnsition
+//
 enum ASTModifier {
-    case bind(ASTQualifiedSymbol, ASTQualifiedSymbol)
-    case unbind(ASTQualifiedSymbol)
+    case bind(String, ASTQualifiedSymbol)
+    case unbind(String)
     case set(String)
     case unset(String)
 
@@ -75,8 +77,7 @@ enum ASTModifier {
         switch self {
         case let .bind(lhs, rhs):
             let syms = [
-                    lhs.qualifier.map { ASTTypedSymbol($0, type: .slot) },
-                    ASTTypedSymbol(lhs.symbol, type: .slot),
+                    ASTTypedSymbol(lhs, type: .slot),
                     rhs.qualifier.map { ASTTypedSymbol($0, type: .slot) },
                     ASTTypedSymbol(rhs.symbol, type: .slot)
                 ]
@@ -84,8 +85,7 @@ enum ASTModifier {
 
         case let .unbind(tgt):
             let syms = [
-                    tgt.qualifier.map { ASTTypedSymbol($0, type: .slot) },
-                    ASTTypedSymbol(tgt.symbol, type: .slot)
+                    ASTTypedSymbol(tgt, type: .slot)
                 ]
             return syms.compactMap { $0 }
 
@@ -98,6 +98,7 @@ enum ASTModifier {
 }
 
 // Model equivalent: Unary/Binary transition
+//
 struct ASTTransition {
     let subject: ASTSubject
     let modifiers: [ASTModifier]
