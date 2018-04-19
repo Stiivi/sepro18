@@ -13,7 +13,7 @@ public enum SymbolType {
     case structure
     case actuator
 
-    init?(name: String) {
+    public init?(name: String) {
         switch name {
         case "slot": self = .slot
         case "tag": self = .tag
@@ -39,6 +39,10 @@ public enum Presence {
 ///
 public struct SymbolMask {
     public let mask: [Symbol:Presence]
+
+    public init(mask: [Symbol:Presence]) {
+        self.mask = mask
+    }
 
     var presentSymbols: Set<Symbol> {
         let result = mask.filter {
@@ -69,6 +73,11 @@ public struct SymbolMask {
 public struct SelectorPattern {
     public let tags: SymbolMask
     public let slots: SymbolMask
+
+    public init(tags: SymbolMask, slots: SymbolMask) {
+        self.tags = tags
+        self.slots = slots
+    }
 }
 
 /// Object specifying which objects to select based on a pattern matching mask.
@@ -104,6 +113,11 @@ public struct UnaryTransition {
     
     public let tags: SymbolMask
     public let bindings: [Symbol: UnaryTarget]
+
+    public init(tags: SymbolMask, bindings: [Symbol:UnaryTarget]){
+        self.tags = tags
+        self.bindings = bindings
+    }
 }
 
 public struct UnaryActuator {
@@ -113,6 +127,16 @@ public struct UnaryActuator {
     public let notifications: Set<Symbol>
     public let traps: Set<Symbol>
     public let halts: Bool
+
+    public init(selector: Selector, transitions: [SubjectMode:UnaryTransition],
+                notifications: Set<Symbol>, traps: Set<Symbol>, halts: Bool) {
+                
+        self.selector = selector
+        self.transitions = transitions
+        self.notifications = notifications
+        self.traps = traps
+        self.halts = halts
+    }
 }
 
 // Binary
@@ -127,6 +151,11 @@ public enum BinaryTarget {
 public struct BinaryTransition {
     public let tags: SymbolMask
     public let bindings: [Symbol: BinaryTarget]
+
+    public init(tags: SymbolMask, bindings: [Symbol:BinaryTarget]) {
+        self.tags = tags
+        self.bindings = bindings
+    }
 }
 
 public struct BinaryActuator {
@@ -139,6 +168,21 @@ public struct BinaryActuator {
     public let notifications: Set<Symbol>
     public let traps: Set<Symbol>
     public let halts: Bool
+
+    public init(leftSelector: Selector, rightSelector: Selector,
+                leftTransitions: [SubjectMode:BinaryTransition],
+                rightTransitions: [SubjectMode:BinaryTransition],
+                notifications: Set<Symbol>,
+                traps: Set<Symbol>,
+                halts: Bool) {
+        self.leftSelector = leftSelector
+        self.rightSelector = rightSelector
+        self.leftTransitions = leftTransitions
+        self.rightTransitions = rightTransitions
+        self.notifications = notifications
+        self.traps = traps
+        self.halts = halts
+    }
 }
 
 public struct Prototype {
@@ -156,7 +200,7 @@ public struct Structure {
 
 /// Sepro model description.
 ///
-public class Model {
+public class Model: CustomStringConvertible {
     // FIXME: Make all properties immutable (let)
     //        - they are made mutable for the compiler
     //
@@ -164,6 +208,9 @@ public class Model {
     public var unaryActuators: [String:UnaryActuator] = [:]
     public var binaryActuators: [String:BinaryActuator] = [:]
     public var structures: [String:Structure] = [:]
+
+    public init() {
+    }
 
     /// - Returns: Type of a symbol `symbol`. If symbol is not defined, then
     /// returns `SymbolType.undefined`
@@ -200,6 +247,17 @@ public class Model {
 
     public func setActuator(binary: BinaryActuator, name: String) {
         binaryActuators[name] = binary
+    }
+
+    public var description: String {
+        var items: Array<String> = []
+
+        items += symbols.filter {
+            (key, value) in value == .slot || value == .tag
+        }.map { (key, value) in "DEF \(value) \(key)" }
+
+        return items.joined(separator: "\n")
+
     }
 }
 

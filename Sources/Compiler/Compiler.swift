@@ -1,9 +1,11 @@
+import Sepro18
+
 /// Sepro compiler - complies ASTModelObjects into model
 ///
-class Compiler {
-    var model: Model
+public final class Compiler {
+    public var model: Model
 
-    init() {
+    public init() {
         model = Model()
     }
 
@@ -12,8 +14,8 @@ class Compiler {
     /// - Pass 1: collect definitions or infer symbol types
     /// - Pass 2: create model objects
     ///
-    func compile(_ string: String) {
-        let items: [ASTModelObject] = parse(source: string)
+    public func compile(source: String) {
+        let items: [ASTModelObject] = parse(source: source)
 
         // Phase 1: Determine symbols
         //

@@ -9,7 +9,7 @@ let package = Package(
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(
             name: "Sepro18",
-            targets: ["Sepro18"]),
+            targets: ["Compiler"]),
         .executable(
             name: "sepro",
             targets: ["Tool"]),
@@ -22,10 +22,13 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "Sepro18",
-            dependencies: ["ParserCombinator"]),
+            dependencies: []),
+        .target(
+            name: "Compiler",
+            dependencies: ["ParserCombinator", "Sepro18"]),
         .target(
             name: "Tool",
-            dependencies: ["Sepro18"]),
+            dependencies: ["Compiler"]),
         .testTarget(
             name: "Sepro18Tests",
             dependencies: ["Sepro18"]),
