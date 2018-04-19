@@ -9,7 +9,7 @@ react bind
     where (jar !neck)
     on (lid !used)
     in left
-        bind neck to right
+        bind neck to other
     
     in right
         set used

@@ -23,7 +23,9 @@ enum ASTModelObject {
 
         switch self {
         case let .define(type, sym):
-            result = [ASTTypedSymbol(sym, type: SymbolType(name: type))]
+            // FIXME: that lowercased() should happen earlier
+            result = [ASTTypedSymbol(sym, type: SymbolType(name:
+                type.lowercased()))]
 
         case let .unaryActuator(name, sel, mods):
             result = [ASTTypedSymbol(name, type: .actuator)]

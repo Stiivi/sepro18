@@ -72,7 +72,7 @@ let qualified_symbol =
 
 let symbol_presence =
     optionFlag(op("!")) + qualified_symbol
-        => { ASTMatch(isPresent: $0.0, symbol: $0.1) }
+        => { ASTMatch(isPresent: !$0.0, symbol: $0.1) }
 
 
 let selector =
@@ -81,9 +81,9 @@ let selector =
 
 
 let modifier =
-    (^"BIND" *> ^"slot")
+    (^"BIND" *> %"subject_slot")
         + (^"TO" *> qualified_symbol) => ASTModifier.bind
-    || ^"UNBIND" *> ^"slot"           => ASTModifier.unbind
+    || ^"UNBIND" *> ^"subject_slot"           => ASTModifier.unbind
     || ^"SET" *> %"tag"               => ASTModifier.set
     || ^"UNSET" *> %"tag"             => ASTModifier.unset
 

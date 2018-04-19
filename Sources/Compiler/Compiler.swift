@@ -25,6 +25,8 @@ public final class Compiler {
         //
         let symbols = items.map { $0.symbols }.joined()
 
+        debugPrint(">>> COMPILE")
+        debugPrint("=== PHASE I.")
         symbols.forEach {
             typedSymbol in
             if let type = typedSymbol.type {
@@ -32,16 +34,32 @@ public final class Compiler {
                     let previousType = model.typeOf(symbol: typedSymbol.symbol)
                     fatalError("Multiple types for symbol \(typedSymbol.symbol). Trying to define as \(type) previously defined as \(previousType)")
                 }
+                // TODO DEBUG:
+                debugPrint("SYMBOL \(typedSymbol.symbol) AS \(type)")
+            }
+            else {
+                debugPrint("UNTYPED SYMBOL \(typedSymbol.symbol)")
             }
             // TODO: What to do with unknown symbols?
         }
 
+        debugPrint("SYMBOL TABLE:")
+
+        model.symbols.keys.sorted().forEach {
+            symbol in
+            let type = model.symbols[symbol]!
+            debugPrint("    \(symbol):\(type)")
+        }
+
+        debugPrint("=== PHASE II.")
+        
         // At this point we assume all symbols are known. If they are not, then
         // it is a fatal error and we sohuld not proceed.
         //
         items.forEach {
             compile(modelObject: $0)
         }
+        debugPrint("<<< END COMPILE")
     }
 
     /// Complie a model object.
@@ -62,7 +80,7 @@ public final class Compiler {
                             transitions: transitions)
 
         case .structure(_):
-            fatalError("not implemented")
+            debugPrint("WARNING: Structure not implemented")
         }
     }
 
@@ -191,7 +209,7 @@ public final class Compiler {
                 // THIS.slot -> direct(slot)
                 // slot.slot -> indirect (slot, slot)
                 if let qual = target.qualifier {
-                    if qual == "OTHER" {
+                    if qual.uppercased() == "OTHER" {
                         return (slot, .inOther(target.symbol))            
                     }
                     else {
@@ -199,13 +217,13 @@ public final class Compiler {
                     }
                 }
                 else {
-                    if target.symbol == "OTHER" {
+                    if target.symbol.uppercased() == "OTHER" {
                         return (slot, .other)
                     } 
                     else {
                         // TODO: Should we allow that?
                         // This can be done through tags as non-atomic
-                        fatalError("Self-binding in binary actuator: \(slot)")
+                        fatalError("Invalid binding target in binary actuator: \(target.symbol)")
                     }
                 }
             case let .unset(slot):
