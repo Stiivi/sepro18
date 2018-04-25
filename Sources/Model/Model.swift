@@ -44,14 +44,14 @@ public struct SymbolMask {
         self.mask = mask
     }
 
-    var presentSymbols: Set<Symbol> {
+    public var presentSymbols: Set<Symbol> {
         let result = mask.filter {
             item in item.1 == .present
         }.map { $0.0 }
 
         return Set(result)
     }
-    var absentSymbols: Set<Symbol> {
+    public var absentSymbols: Set<Symbol> {
         let result = mask.filter {
             item in item.1 == .absent
         }.map { $0.0 }
@@ -61,7 +61,7 @@ public struct SymbolMask {
 
     /// - Returns: true if the mask matches set of symbols.
     ///
-    func matches(_ symbols: Set<Symbol>) -> Bool {
+    public func matches(_ symbols: Set<Symbol>) -> Bool {
         return presentSymbols.isSubset(of: symbols)
                 && absentSymbols.isDisjoint(with: symbols)
     }

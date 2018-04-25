@@ -1,3 +1,4 @@
+import Model
 
 /// Simple implementation of object container.
 /// 

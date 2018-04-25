@@ -1,3 +1,5 @@
+import Model
+
 public class Simulator {
     let model: Model
     let container: Container

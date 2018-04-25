@@ -1,4 +1,4 @@
-import Sepro18
+import Model
 import ParserCombinator
 
 // Terminals

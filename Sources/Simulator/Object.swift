@@ -1,3 +1,5 @@
+import Model
+
 /// Object reference.
 public struct OID: Hashable, CustomStringConvertible {
     // Prevent doing integer operations with the type and prevent custom creation
