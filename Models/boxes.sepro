@@ -1,12 +1,11 @@
-# This is a jar
+# This is a box
 #
 
-DEF SLOT neck
-def tag jar
+def tag box
 def tag lid
 
 react bind
-    where (jar !neck)
+    where (box !neck)
     on (lid !used)
     in left
         bind neck to other
@@ -15,7 +14,7 @@ react bind
         set used
 
 struct main
-    10 (jar)
+    10 (box)
     10 (lid)
 
 

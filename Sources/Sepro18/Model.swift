@@ -286,16 +286,29 @@ public struct BinaryActuator: CustomStringConvertible {
 }
 
 public struct Prototype {
-    public let tags: [Symbol]
+    public let tags: Set<Symbol>
+
+    public init(tags: Set<Symbol>) {
+        self.tags = tags
+    }
 }
 
-public struct DuplicatedPrototype {
+public struct MultiPrototype {
     public let count: Int
     public let prototype: Prototype
+
+    public init(count: Int, prototype: Prototype) {
+        self.count = count
+        self.prototype = prototype
+    }
 }
 
 public struct Structure {
-    public let prototypes: [DuplicatedPrototype]
+    public let prototypes: [MultiPrototype]
+
+    public init(prototypes: [MultiPrototype]) {
+        self.prototypes = prototypes
+    }
 }
 
 /// Sepro model description.
@@ -341,11 +354,11 @@ public class Model: CustomStringConvertible {
         return true
     }
 
-    public func setActuator(unary: UnaryActuator, name: String) {
+    public func insertActuator(unary: UnaryActuator, name: String) {
         unaryActuators[name] = unary
     }
 
-    public func setActuator(binary: BinaryActuator, name: String) {
+    public func insertActuator(binary: BinaryActuator, name: String) {
         binaryActuators[name] = binary
     }
 
@@ -373,6 +386,10 @@ public class Model: CustomStringConvertible {
 
         return items.joined(separator: "\n")
 
+    }
+
+    public func insertStructure(_ structure: Structure, name: String) {
+        structures[name] = structure 
     }
 }
 

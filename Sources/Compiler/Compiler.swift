@@ -79,8 +79,8 @@ public final class Compiler {
                             rightSelector: rselector,
                             transitions: transitions)
 
-        case .structure(_):
-            debugPrint("WARNING: Structure not implemented")
+        case let .structure(name, items):
+            compileStructure(name: name, items: items)
         }
     }
 
@@ -114,7 +114,7 @@ public final class Compiler {
             halts: false
         )                               
 
-        model.setActuator(unary: actuator, name: name)
+        model.insertActuator(unary: actuator, name: name)
     }
 
     // Extracts SymbolMask from modifiers
@@ -275,7 +275,7 @@ public final class Compiler {
             halts: false
         )
 
-        model.setActuator(binary: actuator, name: name)
+        model.insertActuator(binary: actuator, name: name)
 
 
     }
@@ -398,6 +398,16 @@ public final class Compiler {
         result = Dictionary(patterns, uniquingKeysWith: { (first, _) in first })
 
         return result
+    }
+    func compileStructure(name: String, items: [ASTStructItem]) {
+        let prototypes = items.map {
+            item in
+            MultiPrototype(count: item.count,
+                           prototype: Prototype(tags: Set(item.tags)))
+        } 
+
+        let structure = Structure(prototypes: prototypes)
+        model.insertStructure(structure, name: name)
     }
 }
 
