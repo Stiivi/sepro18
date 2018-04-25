@@ -9,29 +9,26 @@ let package = Package(
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(
             name: "Sepro18",
-            targets: ["Sepro18"]),
+            targets: ["Compiler"]),
         .executable(
             name: "sepro",
             targets: ["Tool"]),
     ],
     dependencies: [
-        // Dependencies declare other packages that this package depends on.
-        // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "https://github.com/Stiivi/SExprLite.git",
-                 .branch("master"))
+        .package(url: "https://github.com/Stiivi/ParserCombinator.git", from: "0.1.5"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "Sepro18",
-            dependencies: ["SExprLite"]),
-
+            dependencies: []),
+        .target(
+            name: "Compiler",
+            dependencies: ["ParserCombinator", "Sepro18"]),
         .target(
             name: "Tool",
-            dependencies: ["Sepro18"]),
-        
-        
+            dependencies: ["Compiler"]),
         .testTarget(
             name: "Sepro18Tests",
             dependencies: ["Sepro18"]),

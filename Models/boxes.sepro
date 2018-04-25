@@ -1,0 +1,20 @@
+# This is a box
+#
+
+def tag box
+def tag lid
+
+react bind
+    where (box !neck)
+    on (lid !used)
+    in left
+        bind neck to other
+    
+    in right
+        set used
+
+struct main
+    10 (box)
+    10 (lid)
+
+
