@@ -6,12 +6,6 @@ import Compiler
 import Model
 
 
-let filename = CommandLine.arguments[1]
-
-let url = NSURL.fileURL(withPath: filename)
-let compiler = Compiler()
-
-
 func usage() {
     print("Usage: \(CommandLine.arguments[0]) MODEL STEPS")
 }
@@ -22,6 +16,8 @@ func main() {
     let source: String
     let modelFile: String
     let stepCount: Int
+    let compiler = Compiler()
+    let outPath = "out"
 
     if args.count < 2 {
         usage()
@@ -43,14 +39,7 @@ func main() {
 
     print("Compiling model...")
 
-    do {
-        let source = try String(contentsOf: url)
-        compiler.compile(source: source)
-    }
-    catch {
-        print("Unknown error")
-		exit(1)
-    }
+    compiler.compile(source: source)
 
     let model: Model = compiler.model
 
@@ -58,6 +47,8 @@ func main() {
 
     let container = Container()
     let simulator = Simulator(model: compiler.model, container: container)
+
+    simulator.delegate = CLIDelegate(outputPath: outPath)
 
     // FIXME: Untie this initialization
     let mainStruct = compiler.model.structures["main"]!
@@ -77,3 +68,4 @@ func main() {
 }
 
 main()
+

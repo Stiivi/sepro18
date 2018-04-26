@@ -8,6 +8,10 @@ import Model
 public class Container {
     var objects:[OID:Object]
     var counter: Int
+
+    public var references: AnyCollection<OID> {
+        return AnyCollection(objects.keys)
+    }
     
 
     public init() {

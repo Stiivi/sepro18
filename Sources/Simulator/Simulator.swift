@@ -26,9 +26,10 @@ extension SimulatorDelegate {
 
 public class Simulator {
     let model: Model
-    let container: Container
-    var stepCount: Int = 0
-    var delegate: SimulatorDelegate? = nil
+    // FIXME: [IMPORTANT] Don't make it public!
+    public let container: Container
+    public internal(set) var stepCount: Int = 0
+    public var delegate: SimulatorDelegate? = nil
 
     var isHalted: Bool = false
 

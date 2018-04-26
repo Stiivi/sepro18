@@ -16,8 +16,8 @@ public struct OID: Hashable, CustomStringConvertible {
 
 
 public struct Object: CustomStringConvertible {
-    internal(set) var tags: Set<Symbol>
-    internal(set) var references: [Symbol:OID]
+    public internal(set) var tags: Set<Symbol>
+    public internal(set) var references: [Symbol:OID]
 
     public var slots: Set<Symbol> {
         return Set(references.keys)
