@@ -7,15 +7,16 @@ let package = Package(
     name: "Sepro18",
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
-        .library(
-            name: "Sepro",
-            targets: ["Simulator", "Compiler"]),
         .executable(
             name: "sepro",
             targets: ["Tool"]),
+        .library(
+            name: "Sepro",
+            targets: ["Simulator", "Compiler"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Stiivi/ParserCombinator.git", from: "0.1.5"),
+        .package(url: "../GraphvizWriter", .branch("master")),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -31,7 +32,7 @@ let package = Package(
             dependencies: ["ParserCombinator", "Model"]),
         .target(
             name: "Tool",
-            dependencies: ["Compiler", "Simulator"]),
+            dependencies: ["Compiler", "Simulator", "GraphvizWriter"]),
         .testTarget(
             name: "Sepro18Tests",
             dependencies: ["Compiler", "Simulator"]),
