@@ -46,9 +46,10 @@ func main() {
     print("Model compiled: \(model.unaryActuators.count) UN, \(model.binaryActuators.count) BIN")
 
     let container = Container()
-    let simulator = Simulator(model: compiler.model, container: container)
+    let simulation = SeproSimulation(model: compiler.model, container: container)
+    let delegate = CLIDelegate(outputPath: outPath)
+    let simulator = Simulator(simulation: simulation, delegate: delegate)
 
-    simulator.delegate = CLIDelegate(outputPath: outPath)
 
     // FIXME: Untie this initialization
     let mainStruct = compiler.model.structures["main"]!
@@ -61,9 +62,7 @@ func main() {
         }
     }
 
-    simulator.debugDump()
     simulator.run(steps: stepCount)
-    simulator.debugDump()
 
 }
 

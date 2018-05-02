@@ -1,43 +1,62 @@
+// Simulator - object performing execution and signalling of a simulation.
+//
+// Note: This is meant to be a generic class that will be extracted into a
+// separate library later on. It should not contain any domain specifics.
+//
+// TODO: This is incubated module.
+//
 import Model
 
 // TODO: Make Simulator an abstract class/lib for iterative simulations
 // TODO: make this a protocol, since we can't expose our internal
 // implementation of object
 
-public protocol SimulatorDelegate {
-	func willRun(simulator: Simulator)
-	func didRun(simulator: Simulator)
-	func willStep(simulator: Simulator)
-	func didStep(simulator: Simulator)
+public enum StepResult<Signal> {
+    case error(Error)
+    case ok(signal: Signal?)
+    case halt(signal: Signal?)
 
-	func handleTrap(simulator: Simulator, traps: Set<Symbol>)
-	func handleHalt(simulator: Simulator)
-}
-
-extension SimulatorDelegate {
-	func willRun(simulator: Simulator) { /* Empty */ }
-	func didRun(simulator: Simulator) { /* Empty */ }
-	func willStep(simulator: Simulator) { /* Empty */ }
-	func didStep(simulator: Simulator) { /* Empty */ }
-
-	func handleTrap(simulator: Simulator, traps: Set<Symbol>) { /* Empty */ }
-	func handleHalt(simulator: Simulator) { /* Empty */ }
-}
-
-public class Simulator {
-    let model: Model
-    // FIXME: [IMPORTANT] Don't make it public!
-    public let container: Container
-    public internal(set) var stepCount: Int = 0
-    public var delegate: SimulatorDelegate? = nil
-
-    var isHalted: Bool = false
-
-    public init(model: Model, container: Container) {
-        self.model = model
-        self.container = container
+    public var signal: Signal? {
+        switch self {
+        case .error(_): return nil
+        case .ok(let signal): return signal
+        case .halt(let signal): return signal
+        }
     }
+}
 
+public protocol IterativeSimulation {
+    associatedtype Signal
+    func step() -> StepResult<Signal>
+}
+
+public protocol SimulatorDelegate {
+    associatedtype S: IterativeSimulation
+
+	func willRun(simulator: Simulator<S, Self>)
+	func didRun(simulator: Simulator<S, Self>)
+	func willStep(simulator: Simulator<S, Self>)
+	func didStep(simulator: Simulator<S, Self>, signal: S.Signal?)
+
+	func didHalt<S>(simulator: Simulator<S, Self>)
+}
+
+
+public class Simulator<S,
+                       D: SimulatorDelegate> where D.S == S {
+    typealias Signal = S.Signal
+
+    public let simulation: S
+
+    public internal(set) var stepCount: Int = 0
+    public internal(set) var isHalted: Bool = false
+
+    public var delegate: D? = nil
+
+    public init(simulation: S, delegate: D?=nil) {
+        self.simulation = simulation
+        self.delegate = delegate
+    }
 	/// Runs the simulation for `steps`.
     ///
     /// - Returns: Number of steps the simulation run. Note that it might be
@@ -46,7 +65,6 @@ public class Simulator {
     @discardableResult
 	public func run(steps:Int) -> Int {
         precondition(steps > 0, "Number of steps to run must be greater than 0")
-        precondition(!isHalted, "Can't run halted simulator")
 
         var stepsRun: Int = 0
 
@@ -59,11 +77,10 @@ public class Simulator {
 		delegate?.willRun(simulator:self)
 
 		for _ in 1...steps {
-
 			step()
 
 			if isHalted {
-				delegate?.handleHalt(simulator:self)
+				delegate?.didHalt(simulator:self)
 				break
 			}
 
@@ -75,72 +92,21 @@ public class Simulator {
 	}
 
     public func step() {
+        precondition(!isHalted, "Can't run halted simulator")
+
+        let result: StepResult<Signal>
+
 		delegate?.willStep(simulator: self)
-        // FIXME: Make this Simulation.step()
-        stepBody()
+
+        result =  simulation.step()
         stepCount += 1
-		delegate?.didStep(simulator: self)
+
+        if case .halt(_) = result {
+            isHalted = true
+        }
+		
+        delegate?.didStep(simulator: self, signal: result.signal)
     }
 
-    public func stepBody() {
-        // var notifications = Set<Symbol>()
-        // var traps = Set<Symbol>()
-        // var halts: Bool = false
-
-        // Unary actuators
-        // ---------------
-        // FIXME: Those inner conditions are not 100% right - what if an object
-        // has been changed in a way that it has to be considered?
-        for actuator in model.unaryActuators.values {
-
-            for oid in container.select(actuator.selector) {
-                if !container.matches(oid, selector: actuator.selector) {
-                    // The object has been modified through some of the rules,
-                    // we skip it
-                    continue
-                }
-                container.update(oid, with: actuator.transitions)
-            }
-        }
-
-        // Binary actuators
-        // ----------------
-
-        for actuator in model.binaryActuators.values {
-            let leftOnes = container.select(actuator.leftSelector)
-            let rightOnes = container.select(actuator.rightSelector)
-
-            for left in leftOnes {
-                for right in rightOnes {
-                    if !container.matches(left, selector: actuator.leftSelector) {
-                        // The left has been modified - the rest of the right
-                        // side can't be processed
-                        break
-                    }
-                    if !container.matches(right, selector: actuator.rightSelector) {
-                        // The right has been modified, we skip it
-                        continue
-                    }
-                    container.update(left,
-                                     with: actuator.leftTransitions,
-                                     other: right)
-                    container.update(right,
-                                     with: actuator.rightTransitions,
-                                     other: left)
-                }
-            }
-        }
-    }
-
-	public func debugDump() {
-		debugPrint(">>> SIMULATOR DUMP START\n")
-		debugPrint("--- STEP \(self.stepCount)")
-		self.container.objects.keys.forEach {
-			ref in
-            let obj = container[ref]
-			debugPrint("    \(obj)")
-		}
-		debugPrint("<<< END OF DUMP\n")
-	}
 }
 

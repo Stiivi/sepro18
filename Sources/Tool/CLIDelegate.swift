@@ -2,55 +2,58 @@ import Simulator
 import GraphvizWriter
 import Model
 
-class CLIDelegate: SimulatorDelegate {
+final class CLIDelegate: SimulatorDelegate {
+    typealias S = SeproSimulation
+
 	let path: String
 
-	public init(outputPath: String) {
+	init(outputPath: String) {
         path = outputPath
 	}
 
-	public func handleHalt(simulator: Simulator) {
+	func didHalt(simulator: Simulator<S, CLIDelegate>) {
 		print("Halted!")
 	}
 
-	public func handleTrap(simulator: Simulator, traps: Set<Symbol>) {
+	func handleTrap(simulator: Simulator<S, CLIDelegate>, traps: Set<Symbol>) {
 		print("Traps!")
 	}
 
-	public func dotFileName(sequence: Int) -> String {
+	func dotFileName(sequence: Int) -> String {
 		let name = String(format: "%06d.dot", sequence)
         // FIXME: crete path
 		return self.path + "/dots/" + name
 	}
 
-	public func willRun(simulator: Simulator) {
+	func willRun(simulator: Simulator<S, CLIDelegate>) {
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
 
-	public func didRun(simulator: Simulator) {
+	func didRun(simulator: Simulator<S, CLIDelegate>) {
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
 
-	public func willStep(simulator: Simulator) {
+	func willStep(simulator: Simulator<S, CLIDelegate>) {
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
 
-	public func didStep(simulator: Simulator) {
+	func didStep(simulator: Simulator<S, CLIDelegate>,
+                 signal: S.Signal?) {
 		// do nothing
 	}
 
-    func writeDot(path: String, simulator: Simulator) {
+    func writeDot(path: String, simulator: Simulator<S, CLIDelegate>) {
         let writer = DotWriter(path: path,
                                name: "g",
                                type: .directed)
 
         // FIXME: This is accessing internal
-        simulator.container.references.forEach {
+        simulator.simulation.container.references.forEach {
             oid in
-            let obj = simulator.container[oid]
+            let obj = simulator.simulation.container[oid]
             writeObject(oid: oid, object: obj, into: writer)
         }
 
