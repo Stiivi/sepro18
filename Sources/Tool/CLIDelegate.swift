@@ -1,6 +1,6 @@
 import Simulator
 import Simulation
-import GraphvizWriter
+import DotWriter
 import Model
 
 final class CLIDelegate: SimulatorDelegate {

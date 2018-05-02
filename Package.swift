@@ -15,8 +15,8 @@ let package = Package(
             targets: ["Simulation", "Compiler"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Stiivi/ParserCombinator.git", from: "0.1.5"),
-        .package(url: "../GraphvizWriter", .branch("master")),
+        .package(url: "https://github.com/Stiivi/ParserCombinator.git", from: "0.1.6"),
+        .package(url: "https://github.com/Stiivi/DotWriter.git", from: "0.1.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -35,7 +35,7 @@ let package = Package(
             dependencies: ["ParserCombinator", "Model"]),
         .target(
             name: "Tool",
-            dependencies: ["Compiler", "Simulation", "GraphvizWriter"]),
+            dependencies: ["Compiler", "Simulation", "DotWriter"]),
         .testTarget(
             name: "Sepro18Tests",
             dependencies: ["Compiler", "Simulation"]),

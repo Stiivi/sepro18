@@ -1,11 +1,14 @@
 import Simulator
 import Model
 
+// TODO: Unused for now, we just need a signal type
 public struct SeproSignal {
     let traps: Set<Symbol>
     let messages: Set<Symbol>
 }
 
+/// Simulation of the Sepro model
+///
 public class SeproSimulation: IterativeSimulation {
     public typealias Signal = SeproSignal
 

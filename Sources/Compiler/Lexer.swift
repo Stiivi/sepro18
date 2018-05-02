@@ -118,7 +118,7 @@ public struct Token: CustomStringConvertible, CustomDebugStringConvertible {
 
 // TODO: Technical debt
 extension Token: EmptyCheckable {
-    public static var EmptyValue: Token {
+    public static var emptyValue: Token {
         return Token(.empty, text: "", position: TextPosition())
     }
     public var isEmpty: Bool { return self.kind == .empty }

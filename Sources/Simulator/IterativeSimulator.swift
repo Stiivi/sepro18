@@ -4,6 +4,7 @@
 // separate library later on. It should not contain any domain specifics.
 //
 // TODO: This is incubated module.
+// TODO: Error handling
 //
 
 public protocol SimulatorDelegate {
@@ -67,6 +68,8 @@ public class IterativeSimulator<S,
         return stepsRun
 	}
 
+    /// Perform one iteration of the simulation.
+    ///
     public func step() {
         precondition(!isHalted, "Can't run halted simulator")
 
