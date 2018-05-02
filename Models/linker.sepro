@@ -1,0 +1,59 @@
+# Linker demo
+#
+
+# Define slot symbols to make compiler warn us when we try to use them as tags
+# TODO: Docstrings are not yet supported
+# "Left slot in linker"
+def slot site_a
+# "Right slot in linker"
+def slot site_b
+# "Next node in chain"
+def slot next
+def tag linker
+def tag link
+
+REACT primer
+    WHERE (linker !site_a)
+    ON (free link)
+    in left
+        bind site_a to other
+        set wait_right
+
+    in right
+        unset free
+
+REACT _wait_right
+    WHERE (wait_right)
+    ON (free link)
+    IN left
+        BIND site_b TO other
+        UNSET wait_right
+        SET chain
+    IN right 
+        UNSET free
+
+ACT _chain
+    WHERE (chain)
+    IN this
+        UNSET chain
+        SET advance
+    IN this.site_a
+        BIND next TO site_b
+
+ACT _advance
+    WHERE (advance)
+    IN this
+        BIND site_a TO site_b
+        UNSET advance
+        SET cleanup
+
+ACT _cleanup
+    WHERE (cleanup)
+    IN this
+        BIND site_b TO none
+        UNSET cleanup
+        SET wait_right
+
+struct main
+    30 (free link)
+    3 (linker)
