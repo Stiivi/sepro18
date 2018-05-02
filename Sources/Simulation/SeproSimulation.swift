@@ -1,3 +1,4 @@
+import Simulator
 import Model
 
 public struct SeproSignal {

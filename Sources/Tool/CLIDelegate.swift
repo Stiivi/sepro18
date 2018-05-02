@@ -1,4 +1,5 @@
 import Simulator
+import Simulation
 import GraphvizWriter
 import Model
 
@@ -11,11 +12,11 @@ final class CLIDelegate: SimulatorDelegate {
         path = outputPath
 	}
 
-	func didHalt(simulator: Simulator<S, CLIDelegate>) {
+	func didHalt(simulator: IterativeSimulator<S, CLIDelegate>) {
 		print("Halted!")
 	}
 
-	func handleTrap(simulator: Simulator<S, CLIDelegate>, traps: Set<Symbol>) {
+	func handleTrap(simulator: IterativeSimulator<S, CLIDelegate>, traps: Set<Symbol>) {
 		print("Traps!")
 	}
 
@@ -25,27 +26,27 @@ final class CLIDelegate: SimulatorDelegate {
 		return self.path + "/dots/" + name
 	}
 
-	func willRun(simulator: Simulator<S, CLIDelegate>) {
+	func willRun(simulator: IterativeSimulator<S, CLIDelegate>) {
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
 
-	func didRun(simulator: Simulator<S, CLIDelegate>) {
+	func didRun(simulator: IterativeSimulator<S, CLIDelegate>) {
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
 
-	func willStep(simulator: Simulator<S, CLIDelegate>) {
+	func willStep(simulator: IterativeSimulator<S, CLIDelegate>) {
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
 
-	func didStep(simulator: Simulator<S, CLIDelegate>,
+	func didStep(simulator: IterativeSimulator<S, CLIDelegate>,
                  signal: S.Signal?) {
 		// do nothing
 	}
 
-    func writeDot(path: String, simulator: Simulator<S, CLIDelegate>) {
+    func writeDot(path: String, simulator: IterativeSimulator<S, CLIDelegate>) {
         let writer = DotWriter(path: path,
                                name: "g",
                                type: .directed)

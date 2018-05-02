@@ -1,6 +1,7 @@
 // TODO: This is preliminary implementation of the tool.
 //
 import Foundation
+import Simulation
 import Simulator
 import Compiler
 import Model
@@ -48,7 +49,7 @@ func main() {
     let container = Container()
     let simulation = SeproSimulation(model: compiler.model, container: container)
     let delegate = CLIDelegate(outputPath: outPath)
-    let simulator = Simulator(simulation: simulation, delegate: delegate)
+    let simulator = IterativeSimulator(simulation: simulation, delegate: delegate)
 
 
     // FIXME: Untie this initialization

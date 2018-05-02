@@ -12,7 +12,7 @@ let package = Package(
             targets: ["Tool"]),
         .library(
             name: "Sepro",
-            targets: ["Simulator", "Compiler"]),
+            targets: ["Simulation", "Compiler"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Stiivi/ParserCombinator.git", from: "0.1.5"),
@@ -26,15 +26,18 @@ let package = Package(
             dependencies: []),
         .target(
             name: "Simulator",
-            dependencies: ["Model"]),
+            dependencies: []),
+        .target(
+            name: "Simulation",
+            dependencies: ["Model", "Simulator"]),
         .target(
             name: "Compiler",
             dependencies: ["ParserCombinator", "Model"]),
         .target(
             name: "Tool",
-            dependencies: ["Compiler", "Simulator", "GraphvizWriter"]),
+            dependencies: ["Compiler", "Simulation", "GraphvizWriter"]),
         .testTarget(
             name: "Sepro18Tests",
-            dependencies: ["Compiler", "Simulator"]),
+            dependencies: ["Compiler", "Simulation"]),
     ]
 )

@@ -5,44 +5,20 @@
 //
 // TODO: This is incubated module.
 //
-import Model
-
-// TODO: Make Simulator an abstract class/lib for iterative simulations
-// TODO: make this a protocol, since we can't expose our internal
-// implementation of object
-
-public enum StepResult<Signal> {
-    case error(Error)
-    case ok(signal: Signal?)
-    case halt(signal: Signal?)
-
-    public var signal: Signal? {
-        switch self {
-        case .error(_): return nil
-        case .ok(let signal): return signal
-        case .halt(let signal): return signal
-        }
-    }
-}
-
-public protocol IterativeSimulation {
-    associatedtype Signal
-    func step() -> StepResult<Signal>
-}
 
 public protocol SimulatorDelegate {
     associatedtype S: IterativeSimulation
 
-	func willRun(simulator: Simulator<S, Self>)
-	func didRun(simulator: Simulator<S, Self>)
-	func willStep(simulator: Simulator<S, Self>)
-	func didStep(simulator: Simulator<S, Self>, signal: S.Signal?)
+	func willRun(simulator: IterativeSimulator<S, Self>)
+	func didRun(simulator: IterativeSimulator<S, Self>)
+	func willStep(simulator: IterativeSimulator<S, Self>)
+	func didStep(simulator: IterativeSimulator<S, Self>, signal: S.Signal?)
 
-	func didHalt<S>(simulator: Simulator<S, Self>)
+	func didHalt<S>(simulator: IterativeSimulator<S, Self>)
 }
 
 
-public class Simulator<S,
+public class IterativeSimulator<S,
                        D: SimulatorDelegate> where D.S == S {
     typealias Signal = S.Signal
 
