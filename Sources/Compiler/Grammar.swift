@@ -1,31 +1,20 @@
+// Sepro18 grammar
+//
+
 import Model
 import ParserCombinator
 
-// Terminals
+// FIXME: This is required for ParserCombinator, which needs to be rethinked
+
+extension Token: EmptyCheckable {
+    public static var emptyValue: Token {
+        return Token(.empty, text: "", position: TextPosition())
+    }
+    public var isEmpty: Bool { return type == .empty }
+}
+
+// Convenience grammar operators
 // =======================================================================
-func token(_ kind: TokenKind, _ expected: String) -> Parser<Token, Token> {
-    return satisfy(expected) { token in token.kind == kind }
-}
-
-func tokenValue(_ kind: TokenKind, _ value: String) -> Parser<Token, Token> {
-    return satisfy(value) {
-        token in
-            token.kind == kind && token.text == value
-        }
-}
-
-func isKeyword(_ value: String) -> Parser<Token, Token> {
-    return satisfy(value) {
-        token in
-            token.kind == .symbol && token.text.uppercased() == value
-        }
-}
-
-let symbol  = { name  in token(.symbol, name)  => { t in Symbol(describing:t.text) } }
-let keyword = { kw    in isKeyword(kw)  => { t in t.text.uppercased() } }
-let number  = { label in token(.intLiteral, label) => { t in Int(t.text)! } }
-let text    = { label in token(.stringLiteral, label) => { t in t.text } }
-let op      = { o     in tokenValue(.operator, o) }
 
 prefix operator ^
 prefix func ^(value: String) -> Parser<Token, String>{
@@ -40,6 +29,34 @@ infix operator ... : BindPrecedence
 public func ...<T, A, B>(p: Parser<T,A>, sep:Parser<T,B>) -> Parser<T,[A]> {
     return separated(p, sep)
 }
+
+
+// Terminals
+// =======================================================================
+
+func token(_ type: TokenType, _ expected: String) -> Parser<Token, Token> {
+    return satisfy(expected) { token in token.type == type }
+}
+
+func tokenValue(_ type: TokenType, _ value: String) -> Parser<Token, Token> {
+    return satisfy(value) {
+        token in
+            token.type == type && token.text == value
+        }
+}
+
+func isKeyword(_ value: String) -> Parser<Token, Token> {
+    return satisfy(value) {
+        token in
+            token.type == .symbol && token.text.uppercased() == value
+        }
+}
+
+let symbol  = { name  in token(.symbol, name)  => { t in Symbol(describing:t.text) } }
+let keyword = { kw    in isKeyword(kw)  => { t in t.text.uppercased() } }
+let number  = { label in token(.intLiteral, label) => { t in Int(t.text)! } }
+let text    = { label in token(.stringLiteral, label) => { t in t.text } }
+let op      = { o     in tokenValue(.operator, o) }
 
 //
 

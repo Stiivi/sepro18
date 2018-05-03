@@ -8,12 +8,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+// FIXME: use [lr]paren instead of operator for '(' ')'
+
 /// Parser Token
 
 import Foundation
 import protocol ParserCombinator.EmptyCheckable
 
-public enum TokenKind: Equatable, CustomStringConvertible {
+public enum TokenType: Equatable, CustomStringConvertible {
     case empty
 
     case error(String)
@@ -43,106 +45,56 @@ public enum TokenKind: Equatable, CustomStringConvertible {
 }
 
 
-// TODO: Rewrite according to SExpr
-
 /// Line and column text position. Starts at line 1 and column 1.
 public struct TextPosition: CustomStringConvertible {
     var line: Int = 1
     var column: Int = 1
 
 	/// Advances the text position. If the character is a new line character,
-	/// then line position is increased and column position is reset to 1. 
-    mutating func advance(with char: UnicodeScalar?) {
-		if let char = char {
-			if NewLineCharacterSet.contains(char) {
-				self.column = 1
-				self.line += 1
-			}
-            self.column += 1
-		}
+	/// then line position is increasd and column position is reset to 1. 
+    mutating func advanceColumn() {
+        column += 1
+    }
+
+    mutating func advanceLine() {
+        column = 1
+        line += 1
     }
 
     public var description: String {
-        return "\(self.line):\(self.column)"
+        return "\(line):\(column)"
     }
 }
 
 
 public struct Token: CustomStringConvertible, CustomDebugStringConvertible {
     public let position: TextPosition
-    public let kind: TokenKind
+    public let type: TokenType
     public let text: String
 
-    public init(_ kind: TokenKind, text: String, position: TextPosition) {
-        self.kind = kind
+    public init(_ type: TokenType, text: String, position: TextPosition) {
+        self.type = type
         self.text = text
         self.position = position
     }
 
     public var description: String {
         let str: String
-        switch self.kind {
+        switch type {
         case .empty: str = "(empty)"
-        case .stringLiteral: str = "'\(self.text)'"
+        case .stringLiteral: str = "'\(text)'"
         case .error(let message): str = "\(message) around '\(self.text)'"
         default:
             str = self.text
         }
-        return "\(str) (\(self.kind)) at \(self.position)"
+        return "\(str) (\(type)) at \(position)"
     }
+
     public var debugDescription: String {
         return description
     }
-
-    /// Content of the string literal.
-    public var stringLiteral: String? {
-        guard kind == .stringLiteral else {
-            return nil
-        }
-
-        let offset: Int
-
-        if text.hasPrefix("\"\"\"") {
-            offset = 3
-        }
-        else {
-            offset = 1
-        }
-        let start = text.index(text.startIndex, offsetBy: offset)
-        let end = text.index(text.endIndex, offsetBy: -offset)
-
-        return String(text[start...end])
-    }
-
 }
 
-// TODO: Technical debt
-extension Token: EmptyCheckable {
-    public static var emptyValue: Token {
-        return Token(.empty, text: "", position: TextPosition())
-    }
-    public var isEmpty: Bool { return self.kind == .empty }
-}
-
-public func ==(token: Token, kind: TokenKind) -> Bool {
-    return token.kind == kind
-}
-
-public func ==(left: Token, right: String) -> Bool {
-    return left.text == right
-}
-
-// Character sets
-let WhitespaceCharacterSet = CharacterSet.whitespaces | CharacterSet.newlines
-let NewLineCharacterSet = CharacterSet.newlines
-let DecimalDigitCharacterSet = CharacterSet.decimalDigits
-
-var IdentifierStart = CharacterSet.letters | "_"
-var IdentifierCharacters = CharacterSet.alphanumerics | "_"
-var OperatorCharacters =  CharacterSet(charactersIn: ".()!")
-
-// Single quote: Symbol, Triple quote: Docstring
-let CommentStart: UnicodeScalar = "#"
 
 /// Simple lexer that produces symbols, keywords, integers, operators and
 /// docstrings. Symbols can be quoted with a back-quote character.
@@ -150,44 +102,40 @@ let CommentStart: UnicodeScalar = "#"
 public class Lexer {
 	typealias Index = String.UnicodeScalarView.Index
 
-    let source: String
-    let characters: String.UnicodeScalarView
-    var index: Index
+    var iterator: String.UnicodeScalarView.Iterator
     var currentChar: UnicodeScalar? = nil
+    var text: String
 
     public var position: TextPosition
     public var currentToken: Token?
+
+    static let whitespaces = CharacterSet.whitespaces | CharacterSet.newlines
+    static let decimalDigits = CharacterSet.decimalDigits
+    static let symbolStart = CharacterSet.letters | "_"
+    static let symbolCharacters = symbolStart | CharacterSet.decimalDigits | "_"
+    static let operatorCharacters =  CharacterSet(charactersIn: ".()!")
 
     /// Initialize the lexer with model source.
     ///
     /// - Parameter source: source string
     ///
     public init(_ source:String) {
-        self.source = source
+        iterator = source.unicodeScalars.makeIterator()
 
-        characters = source.unicodeScalars
-        index = characters.startIndex
-
-        if source.isEmpty {
-            currentChar = nil
-        }
-        else {
-            currentChar = characters[index]
-        }
-
+        currentChar = iterator.next()
         position = TextPosition()
 
+        text = ""
         currentToken = nil
     }
-
     /// Latest error token message.
     ///
     public var error: String? {
-        guard let kind = currentToken?.kind else {
+        guard let type = currentToken?.type else {
             return nil
         }
 
-        switch kind {
+        switch type {
         case .error(let message): return message
         default: return nil
         }
@@ -196,7 +144,7 @@ public class Lexer {
     /// true` if the parser is at end of input.
     ///
     public var atEnd: Bool {
-        return index >= characters.endIndex
+        return currentChar == nil
     }
 
 
@@ -205,11 +153,11 @@ public class Lexer {
         var tokens = [Token]()
 
         loop: while(true) {
-            let token = self.nextToken()
+            let token = self.next()
 
             tokens.append(token)
 
-            switch token.kind {
+            switch token.type {
             case .empty, .error:
                 break loop
             default:
@@ -220,26 +168,36 @@ public class Lexer {
         return tokens
     }
 
-    /**
-     Advance to the next character and set current character.
-     */
-    func advance() {
-		index = characters.index(index, offsetBy: 1)
+    /// Advance to the next character and set current character.
+    ///
+    /// - Parameter discard: If `true` then the current character is not
+    ///                      appended to the result text.
+    ///
+    func advance(discard: Bool=false) {
+        if !atEnd {
+            if !discard {
+                text.unicodeScalars.append(currentChar!)
+            }
+            currentChar = iterator.next()
 
-        // TODO: Fix this with atEnd
-        if index < characters.endIndex {
-			currentChar = characters[index]
-			position.advance(with: currentChar)
-		}
-		else {
-			currentChar = nil
-		}
+            if let char = currentChar {
+                if CharacterSet.newlines.contains(char) {
+                    position.advanceLine()
+                }
+                else {
+                    position.advanceColumn()
+                }
+            }
+        }
     }
 
-    /** Accept characters that are equal to the `char` character */
-    fileprivate func accept(character: UnicodeScalar) -> Bool {
+    /// Accept characters that are equal to the `char` character
+    ///
+    /// - Returns: `true` if character was accepted, otherwise `false`.
+    ///
+    fileprivate func accept(character: UnicodeScalar, discard: Bool=false) -> Bool {
         if self.currentChar == character {
-            self.advance()
+            self.advance(discard: discard)
             return true
         }
         else {
@@ -247,7 +205,11 @@ public class Lexer {
         }
     }
 
-    /// Accept characters from a character set `set`
+    /// Accept characters from a character set and advance if the character was
+    /// accepted..
+    ///
+    /// - Returns: `true` if character was accepted, otherwise `false`
+    ///
     fileprivate func accept(from set: CharacterSet) -> Bool {
         if currentChar.map({ set.contains($0) }) ?? false {
             self.advance()
@@ -258,148 +220,157 @@ public class Lexer {
         }
     }
 
-    private func acceptWhile(from set: CharacterSet) {
-        while(self.currentChar != nil) {
-            if !(set.contains(self.currentChar!)) {
-                break
-            }
-            self.advance()
+    /// Accept characters while a character for a set is encountered.
+    ///
+    /// - Returns: `true` if at least one character was accepted, otherwise
+    /// `false`
+    ///
+    @discardableResult
+    private func acceptWhile(from set: CharacterSet) -> Bool {
+        var advanced: Bool = false
+
+        while accept(from: set) {
+            advanced = true 
         }
+
+        return advanced
     }
 
+    /// Accept characters until a character for a set is encountered.
+    ///
+    /// - Returns: `true` if at least one character was accepted, otherwise
+    /// `false`
+    ///
 	@discardableResult
     private func acceptUntil(from set: CharacterSet) -> Bool {
-        while(self.currentChar != nil) {
-            if set.contains(self.currentChar!) {
-                return true
-            }
-            self.advance()
-        }
-        return false
-    }
+        var advanced: Bool = false
 
-    /**
-     Parse next token.
-
-     - Returns: currently parsed SourceToken
-     */
-    public func nextToken() -> Token {
-        let tokenKind: TokenKind
-
-        // Skip whitespace
-        while(true){
-            if self.accept(character: CommentStart) {
-                self.acceptUntil(from: NewLineCharacterSet)
-            }
-            else if !self.accept(from: WhitespaceCharacterSet) {
+        while true {
+            if currentChar.map({ set.contains($0) }) ?? true {
                 break
             }
-        }
-
-        if self.atEnd {
-            return Token(.empty, text: "", position: position)
-        }
-
-        let start = self.index
-        let pos = self.position
-
-        // Integer = [0-9]+
-        //
-        if accept(from: DecimalDigitCharacterSet) {
-            self.acceptWhile(from: DecimalDigitCharacterSet)
-
-            if accept(from: IdentifierStart) {
-                let invalid = currentChar.map { String($0) } ?? "(nil)"
-                let error = "Invalid character \(invalid) in integer literal."
-                tokenKind = .error(error)
-            }
             else {
-                tokenKind = .intLiteral
+                self.advance()
+                advanced = true
             }
         }
-        else if accept(from: IdentifierStart) {
-            acceptWhile(from: IdentifierCharacters)
 
-            tokenKind = .symbol
-        }
-        else if accept(character: "\"") {
-            tokenKind = scanString()
-        }
-        else if accept(from: OperatorCharacters) {
-            tokenKind = .operator
-        }
-        else{
-            let error = self.currentChar.map {
-                            "Unexpected character '\($0)'"
-                        } ?? "Unexpected end"
-            
-            tokenKind = .error(error)
-        }
-
-        var text = String(self.source.unicodeScalars[start..<index])
-
-        // Strip quotes from a string literal.
-        // TODO: This is not quite nice
-        //
-        if tokenKind == .stringLiteral {
-            let offset: Int
-
-            if text.hasPrefix("\"\"\"") {
-                offset = 3
-            }
-            else {
-                offset = 1
-            }
-            let start = text.index(text.startIndex, offsetBy: offset)
-            let end = text.index(text.endIndex, offsetBy: -offset)
-
-            text = String(text[start..<end])
-            
-        }
-
-        currentToken = Token(tokenKind, text: text, position: pos)
-
-        return currentToken!
+        return advanced
     }
 
-    func scanString() -> TokenKind {
-		// Second quote
-        if accept(character: "\"") {
-            if accept(character: "\"") {
+    /// Read a single or tripple quoted string literal.
+    ///
+    func scanString() -> TokenType {
+        if accept(character: "\"", discard: true) {
+            if accept(character: "\"", discard: true) {
                 while !atEnd {
-                    if accept(character: "\"")
-                        && accept(character: "\"")
-                        && accept(character: "\"") {
+                    if accept(character: "\"", discard: true)
+                        && accept(character: "\"", discard: true)
+                        && accept(character: "\"", discard: true) {
                         
                         return .stringLiteral
                     }
                     else if accept(character: "\\") && atEnd {
+                        // Unexpected end of string - expected escaped character
                         break
                     }
                     advance() 
+                    
                 }
             }
             else {
-				// If not third quote, then we have an empty string
+                // We got an empty string
                 return .stringLiteral
             }
+        
         }
         else {
-            // Parse normal string here
             while !atEnd {
                 // Escape character
-                if accept(character: "\""){
+                if accept(character: "\"", discard: true){
                     return .stringLiteral
                 }
                 else if accept(character: "\\") && atEnd {
-                    // Unexpected end of s tring
+                    // Unexpected end of string - expected escaped character
                     break
+                }
+                else if accept(from: CharacterSet.newlines) {
+                    return .error("New line in a single-line string.")
                 }
 
                 advance()
             }
         }
-        return .error("Unexpected end of input in a string")
+        
+        return .error("Unexpected end of string")
+        
     }
+    /// Parse next token.
+    ///
+    /// - Returns: currently parsed SourceToken
+    ///
+    public func nextToken() -> TokenType {
+        let result: TokenType
+
+        // Skip whitespace
+        while(true){
+            if accept(character: "#") {
+                acceptUntil(from: CharacterSet.newlines)
+            }
+            else if !accept(from: Lexer.whitespaces) {
+                break
+            }
+        }
+
+        text = ""
+
+        guard !self.atEnd else {
+            return .empty
+        }
+
+        // Integer = [0-9]+
+        //
+        if accept(from: Lexer.decimalDigits) {
+            self.acceptWhile(from: Lexer.decimalDigits)
+
+            if accept(from: Lexer.symbolStart) {
+                let invalid = currentChar.map { String($0) } ?? "(nil)"
+                let error = "Invalid character \(invalid) in integer literal."
+                result = .error(error)
+            }
+            else {
+                result = .intLiteral
+            }
+        }
+        else if accept(from: Lexer.symbolStart) {
+            acceptWhile(from: Lexer.symbolCharacters)
+
+            result = .symbol
+        }
+        else if accept(character: "\"") {
+            result = scanString()
+        }
+        else if accept(from: Lexer.operatorCharacters) {
+            result = .operator
+        }
+        else{
+            let error = currentChar.map {
+                            "Unexpected character '\($0)'"
+                        } ?? "Unexpected end"
+            
+            result = .error(error)
+        }
+
+        return result
+    }
+
+    /// Parse and return next token.
+    ///
+    func next() -> Token {
+        let type = nextToken()
+
+        return Token(type, text: text, position: position)
+    }
+
 }
 
