@@ -17,7 +17,7 @@ public final class Compiler {
     public func compile(source: String) {
         let items: [ASTModelObject] = parse(source: source)
 
-        // Phase 1: Determine symbols
+        // PHASE I. Determine symbols
         //
         // The symbol types are required for the selector - we need to know
         // whether the symbols represent tags (to check for existence) or slots
@@ -25,8 +25,6 @@ public final class Compiler {
         //
         let symbols = items.map { $0.symbols }.joined()
 
-        debugPrint(">>> COMPILE")
-        debugPrint("=== PHASE I.")
         symbols.forEach {
             typedSymbol in
             if let type = typedSymbol.type {
@@ -34,32 +32,22 @@ public final class Compiler {
                     let previousType = model.typeOf(symbol: typedSymbol.symbol)
                     fatalError("Multiple types for symbol \(typedSymbol.symbol). Trying to define as \(type) previously defined as \(previousType!)")
                 }
-                // TODO DEBUG:
-                debugPrint("SYMBOL \(typedSymbol.symbol) AS \(type)")
             }
             else {
-                debugPrint("UNTYPED SYMBOL \(typedSymbol.symbol)")
+                debugPrint("WARNING: Untyped symbol: \(typedSymbol.symbol)")
             }
             // TODO: What to do with unknown symbols?
         }
 
-        debugPrint("SYMBOL TABLE:")
+        // PHASE II. Read model objects
+        //
 
-        model.symbols.keys.sorted().forEach {
-            symbol in
-            let type = model.symbols[symbol]!
-            debugPrint("    \(symbol):\(type)")
-        }
-
-        debugPrint("=== PHASE II.")
-        
         // At this point we assume all symbols are known. If they are not, then
         // it is a fatal error and we sohuld not proceed.
         //
         items.forEach {
             compile(modelObject: $0)
         }
-        debugPrint("<<< END COMPILE")
     }
 
     /// Complie a model object.
@@ -86,6 +74,7 @@ public final class Compiler {
 
     func compileDefine(typeName: String, symbol: String) {
         // FIXME: Looks like we can skip this one, as we did this in the
+        // TODO: Process documentation here
         // Phase I.
     }
 

@@ -58,7 +58,10 @@ let number  = { label in token(.intLiteral, label) => { t in Int(t.text)! } }
 let text    = { label in token(.stringLiteral, label) => { t in t.text } }
 let op      = { o     in tokenValue(.operator, o) }
 
-//
+
+// Model Objects
+// =======================================================================
+
 
 let symbol_type =
     ^"TAG" || ^"SLOT"

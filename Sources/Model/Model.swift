@@ -96,7 +96,7 @@ public struct SymbolMask {
     }
 }
 
-/// Pattern matching an object based on presence or absence of tags or synbols
+/// Pattern matching an object based on presence or absence of tags or slots
 ///
 public struct SelectorPattern {
     public let tags: SymbolMask

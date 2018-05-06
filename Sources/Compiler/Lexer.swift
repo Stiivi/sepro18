@@ -275,7 +275,6 @@ public class Lexer {
                         break
                     }
                     advance() 
-                    
                 }
             }
             else {
@@ -297,7 +296,6 @@ public class Lexer {
                 else if accept(from: CharacterSet.newlines) {
                     return .error("New line in a single-line string.")
                 }
-
                 advance()
             }
         }
@@ -305,6 +303,7 @@ public class Lexer {
         return .error("Unexpected end of string")
         
     }
+
     /// Parse next token.
     ///
     /// - Returns: currently parsed SourceToken
