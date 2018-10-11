@@ -140,20 +140,20 @@ let tag_list =
     op("(") *> many(%"tag") <* op(")")
 
     
-let struct_item =
-    number("count") + tag_list => { ASTStructItem(count: $0.0, tags: $0.1) }
+let world_item =
+    number("count") + tag_list => { ASTWorldItem(count: $0.0, tags: $0.1) }
 
 
-let structure =
-    (^"STRUCT" *> %"name") + many(struct_item)
-        => { ASTModelObject.structure($0.0, $0.1) }
+let world =
+    (^"WORLD" *> %"name") + many(world_item)
+        => { ASTModelObject.world($0.0, $0.1) }
 
 
 let model_object =
     define
     || unary_actuator
     || binary_actuator
-    || structure
+    || world
 
 
 let model =

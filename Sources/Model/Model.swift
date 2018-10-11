@@ -11,6 +11,7 @@ public enum SymbolType {
     /// Symbol represents a tag
     case tag
     case structure
+    case world
     case actuator
 
     public init?(name: String) {
@@ -18,6 +19,7 @@ public enum SymbolType {
         case "slot": self = .slot
         case "tag": self = .tag
         case "structure": self = .structure
+        case "world": self = .world
         case "actuator": self = .actuator
         default: return nil
         }
@@ -293,7 +295,7 @@ public struct Prototype {
     }
 }
 
-public struct MultiPrototype {
+public struct QuantifiedStruct {
     public let count: Int
     public let prototype: Prototype
 
@@ -303,11 +305,11 @@ public struct MultiPrototype {
     }
 }
 
-public struct Structure {
-    public let prototypes: [MultiPrototype]
+public struct World {
+    public let structs: [QuantifiedStruct]
 
-    public init(prototypes: [MultiPrototype]) {
-        self.prototypes = prototypes
+    public init(structs: [QuantifiedStruct]) {
+        self.structs = structs
     }
 }
 
@@ -320,7 +322,7 @@ public class Model: CustomStringConvertible {
     public var symbols: [Symbol:SymbolType] = [:]
     public var unaryActuators: [String:UnaryActuator] = [:]
     public var binaryActuators: [String:BinaryActuator] = [:]
-    public var structures: [String:Structure] = [:]
+    public var worlds: [String:World] = [:]
 
     public init() {
     }
@@ -379,17 +381,17 @@ public class Model: CustomStringConvertible {
             "REACT \(key) \(value)"
         }
 
-        items += structures.map {
+        items += worlds.map {
             (key, value) in
-            "STRUCT \(key) ..."
+            "WORLD \(key) ..."
         }
 
         return items.joined(separator: "\n")
 
     }
 
-    public func insertStructure(_ structure: Structure, name: String) {
-        structures[name] = structure 
+    public func insertWorld(_ world: World, name: String) {
+        worlds[name] = world 
     }
 }
 

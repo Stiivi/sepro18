@@ -67,8 +67,8 @@ public final class Compiler {
                             rightSelector: rselector,
                             transitions: transitions)
 
-        case let .structure(name, items):
-            compileStructure(name: name, items: items)
+        case let .world(name, items):
+            compileWorld(name: name, items: items)
         }
     }
 
@@ -388,15 +388,15 @@ public final class Compiler {
 
         return result
     }
-    func compileStructure(name: String, items: [ASTStructItem]) {
+    func compileWorld(name: String, items: [ASTWorldItem]) {
         let prototypes = items.map {
             item in
-            MultiPrototype(count: item.count,
+            QuantifiedStruct(count: item.count,
                            prototype: Prototype(tags: Set(item.tags)))
         } 
 
-        let structure = Structure(prototypes: prototypes)
-        model.insertStructure(structure, name: name)
+        let world = World(structs: prototypes)
+        model.insertWorld(world, name: name)
     }
 }
 

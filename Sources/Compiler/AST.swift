@@ -16,7 +16,7 @@ enum ASTModelObject {
     case define(String, String)
     case unaryActuator(String, ASTSelector, [ASTTransition])
     case binaryActuator(String, ASTSelector, ASTSelector, [ASTTransition])
-    case structure(String, [ASTStructItem])
+    case world(String, [ASTWorldItem])
 
     var symbols: [ASTTypedSymbol] {
         let result: [ASTTypedSymbol]
@@ -38,8 +38,8 @@ enum ASTModelObject {
                      + rsel.symbols
                      + mods.flatMap { $0.symbols } 
 
-        case let .structure(name, items):
-            result = [ASTTypedSymbol(name, type: .structure)]
+        case let .world(name, items):
+            result = [ASTTypedSymbol(name, type: .world)]
                      + items.flatMap { $0.symbols } 
         }
         return result
@@ -112,7 +112,7 @@ struct ASTTransition {
 }
 
 
-struct ASTStructItem {
+struct ASTWorldItem {
     let count: Int
     let tags: [String]
 

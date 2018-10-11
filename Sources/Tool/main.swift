@@ -53,9 +53,9 @@ func main() {
 
 
     // FIXME: Untie this initialization
-    let mainStruct = compiler.model.structures["main"]!
+    let mainWorld = compiler.model.worlds["main"]!
 
-    mainStruct.prototypes.forEach {
+    mainWorld.structs.forEach {
         proto in
         (0..<proto.count).forEach {
             _ in
