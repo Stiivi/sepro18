@@ -54,6 +54,13 @@ ACT _cleanup
         UNSET cleanup
         SET wait_right
 
-struct main
-    30 (free link)
-    3 (linker)
+
+STRUCT link_
+    OBJ _ (free link)
+
+STRUCT linker_
+    OBJ _ (linker)
+
+WORLD main
+    30 link_
+    3 linker_

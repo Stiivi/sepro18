@@ -32,6 +32,42 @@ public class Container {
         return oid
     }
 
+    /// Creates a new structure in the container
+    ///
+    // Note: This should belong somewhere else, this is just convenience for
+    // complexity.
+    // returns represented object of the structure
+    // represented object for now is the first object
+    @discardableResult
+    public func create(structure: Structure) -> OID {
+        let newObjects: [Symbol:OID]
+
+        newObjects = Dictionary(uniqueKeysWithValues:
+            structure.objects.map {
+                ($0.key, create(prototype: $0.value))
+            }
+        ) 
+
+        structure.bindings.forEach {
+            binding in
+            guard let origin = newObjects[binding.fromName] else {
+                fatalError("Unknown structure origin '\(binding.fromName)'")
+            }
+            guard let target = newObjects[binding.toName] else {
+                fatalError("Unknown structure target '\(binding.toName)'")
+            }
+            guard var object = objects[origin] else {
+                fatalError("Invalid object reference \(origin)")
+            }
+
+            object.references[binding.slot] = target
+        }
+        // TODO: represented object for now is the first object
+        // FIXME: struct must be non-empty
+        return Array(newObjects.values)[0]
+    }
+
+
     /// Selects objects from the container that match patterns of `selector`.
     ///
     /// If a subject mode refers to an indirect object and the referenced

@@ -297,11 +297,11 @@ public struct Prototype {
 
 public struct QuantifiedStruct {
     public let count: Int
-    public let prototype: Prototype
+    public let structName: Symbol
 
-    public init(count: Int, prototype: Prototype) {
+    public init(count: Int, name: String) {
         self.count = count
-        self.prototype = prototype
+        self.structName = name
     }
 }
 
@@ -310,6 +310,28 @@ public struct World {
 
     public init(structs: [QuantifiedStruct]) {
         self.structs = structs
+    }
+}
+
+public struct StructBinding {
+    public let fromName: String
+    public let slot: String
+    public let toName: String
+
+    public init(from origin: String, slot: String, to target: String) {
+        self.fromName = origin
+        self.toName = target
+        self.slot = slot
+    }
+}
+
+public struct Structure {
+    public let objects: [Symbol:Prototype]
+    public let bindings: [StructBinding]
+
+    public init(objects: [Symbol:Prototype], bindings: [StructBinding]) {
+        self.objects = objects
+        self.bindings = bindings
     }
 }
 
@@ -322,6 +344,7 @@ public class Model: CustomStringConvertible {
     public var symbols: [Symbol:SymbolType] = [:]
     public var unaryActuators: [String:UnaryActuator] = [:]
     public var binaryActuators: [String:BinaryActuator] = [:]
+    public var structs: [String:Structure] = [:]
     public var worlds: [String:World] = [:]
 
     public init() {
@@ -381,6 +404,11 @@ public class Model: CustomStringConvertible {
             "REACT \(key) \(value)"
         }
 
+        items += structs.map {
+            (key, value) in
+            "STRUCT \(key) ..."
+        }
+
         items += worlds.map {
             (key, value) in
             "WORLD \(key) ..."
@@ -392,6 +420,9 @@ public class Model: CustomStringConvertible {
 
     public func insertWorld(_ world: World, name: String) {
         worlds[name] = world 
+    }
+    public func insertStruct(_ structure: Structure, name: String) {
+        structs[name] = structure 
     }
 }
 

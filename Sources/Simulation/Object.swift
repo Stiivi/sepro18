@@ -15,9 +15,14 @@ public struct OID: Hashable, CustomStringConvertible {
 }
 
 
-public struct Object: CustomStringConvertible {
+public class Object: CustomStringConvertible {
     public internal(set) var tags: Set<Symbol>
     public internal(set) var references: [Symbol:OID]
+
+    public init(tags: Set<Symbol>, references: [Symbol:OID]) {
+        self.tags = tags
+        self.references = references
+    }
 
     public var slots: Set<Symbol> {
         return Set(references.keys)

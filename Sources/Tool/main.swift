@@ -53,13 +53,19 @@ func main() {
 
 
     // FIXME: Untie this initialization
-    let mainWorld = compiler.model.worlds["main"]!
+    guard let mainWorld = compiler.model.worlds["main"] else {
+        print("Error: no world with name 'main' found")
+        exit(1)
+    }
 
     mainWorld.structs.forEach {
-        proto in
-        (0..<proto.count).forEach {
+        qstruct in
+        (0..<qstruct.count).forEach {
             _ in
-            container.create(prototype: proto.prototype)
+            guard let structure = model.structs[qstruct.structName] else {
+                fatalError("No structure '\(qstruct.structName)'")
+            }
+            container.create(structure: structure)
         }
     }
 

@@ -139,9 +139,31 @@ let binary_actuator =
 let tag_list =
     op("(") *> many(%"tag") <* op(")")
 
-    
+
+
+let struct_object =
+    (^"OBJ" *> %"name") + tag_list
+        => { ASTStructItem.object($0.0, $0.1) }
+
+let struct_binding_origin =
+    %"origin" + (op(".") *> %"slot")
+        => { ASTQualifiedSymbol(qualifier: $0.0, symbol: $0.1) }
+
+let struct_binding =
+    (^"BIND" *> struct_binding_origin) + (^"TO" *> %"target")
+      => { ASTStructItem.binding($0.0.qualifier!, $0.0.symbol, $0.1) }
+
+let struct_item =
+    struct_object
+    || struct_binding
+
+let struct_ =
+    (^"STRUCT" *> %"name") + some(struct_item)
+        => { ASTModelObject.structure($0.0, $0.1)}
+
 let world_item =
-    number("count") + tag_list => { ASTWorldItem(count: $0.0, tags: $0.1) }
+    number("count") + %"struct name"
+        => { ASTWorldItem(count: $0.0, structName: $0.1) }
 
 
 let world =
@@ -153,6 +175,7 @@ let model_object =
     define
     || unary_actuator
     || binary_actuator
+    || struct_
     || world
 
 

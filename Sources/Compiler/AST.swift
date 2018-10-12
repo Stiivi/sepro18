@@ -2,6 +2,12 @@ import Model
 // Abstract Syntax Tree Nodes
 //
 
+// TODO: Introduce "children" to node
+
+protocol ASTNode {
+    var symbols: [ASTTypedSymbol] { get }
+}
+
 struct ASTTypedSymbol {
     let type: SymbolType?
     let symbol: String
@@ -12,10 +18,11 @@ struct ASTTypedSymbol {
     }
 }
 
-enum ASTModelObject {
+enum ASTModelObject: ASTNode {
     case define(String, String)
     case unaryActuator(String, ASTSelector, [ASTTransition])
     case binaryActuator(String, ASTSelector, ASTSelector, [ASTTransition])
+    case structure(String, [ASTStructItem])
     case world(String, [ASTWorldItem])
 
     var symbols: [ASTTypedSymbol] {
@@ -38,6 +45,10 @@ enum ASTModelObject {
                      + rsel.symbols
                      + mods.flatMap { $0.symbols } 
 
+        case let .structure(name, items):
+            result = [ASTTypedSymbol(name, type: .structure)]
+                     + items.flatMap { $0.symbols } 
+
         case let .world(name, items):
             result = [ASTTypedSymbol(name, type: .world)]
                      + items.flatMap { $0.symbols } 
@@ -47,7 +58,28 @@ enum ASTModelObject {
 
 }
 
-enum ASTSelector {
+enum ASTStructItem: ASTNode {
+    case object(String, [String])
+    case binding(String, String, String)
+
+    var symbols: [ASTTypedSymbol] {
+        let result: [ASTTypedSymbol]
+
+        switch self {
+        case let .object(_, tags):
+            // Note: we ignore the name, as it is struct-local
+            result = tags.map {
+                        ASTTypedSymbol($0, type: .tag)
+                     }
+        case let .binding(_, slot, _):
+            // Note: we ignore the object names as, they are struct-local
+            result = [ASTTypedSymbol(slot, type: .slot)]
+        }
+        return result
+    }
+}
+
+enum ASTSelector: ASTNode {
     case all
     case match([ASTMatch])
 
@@ -59,7 +91,7 @@ enum ASTSelector {
     }
 }
 
-struct ASTMatch {
+struct ASTMatch: ASTNode {
     let isPresent: Bool
     let symbol: ASTQualifiedSymbol
 
@@ -70,7 +102,7 @@ struct ASTMatch {
 
 // Model equivalent: unary/binary target and bindings in unary/binary trnsition
 //
-enum ASTModifier {
+enum ASTModifier: ASTNode {
     case bind(String, ASTQualifiedSymbol)
     case unbind(String)
     case set(String)
@@ -102,7 +134,7 @@ enum ASTModifier {
 
 // Model equivalent: Unary/Binary transition
 //
-struct ASTTransition {
+struct ASTTransition: ASTNode {
     let subject: ASTSubject
     let modifiers: [ASTModifier]
 
@@ -112,14 +144,16 @@ struct ASTTransition {
 }
 
 
-struct ASTWorldItem {
+struct ASTWorldItem: ASTNode {
     let count: Int
-    let tags: [String]
+    let structName: String
 
-    var symbols: [ASTTypedSymbol] { return [] }
+    var symbols: [ASTTypedSymbol] {
+        return [ASTTypedSymbol(structName, type: .structure)]
+    }
 }
 
-struct ASTQualifiedSymbol {
+struct ASTQualifiedSymbol: ASTNode {
     let qualifier: Symbol?
     let symbol: Symbol
 
@@ -140,7 +174,7 @@ struct ASTQualifiedSymbol {
     }
 }
 
-struct ASTSubject {
+struct ASTSubject: ASTNode {
     // THIS, LEFT, RIGHT
     let side: String
     let slot: String?

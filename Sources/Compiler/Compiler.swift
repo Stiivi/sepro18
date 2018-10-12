@@ -67,6 +67,8 @@ public final class Compiler {
                             rightSelector: rselector,
                             transitions: transitions)
 
+        case let .structure(name, items):
+            compileStruct(name: name, items: items)
         case let .world(name, items):
             compileWorld(name: name, items: items)
         }
@@ -392,11 +394,35 @@ public final class Compiler {
         let prototypes = items.map {
             item in
             QuantifiedStruct(count: item.count,
-                           prototype: Prototype(tags: Set(item.tags)))
+                             name: item.structName)
         } 
 
         let world = World(structs: prototypes)
         model.insertWorld(world, name: name)
+    }
+    func compileStruct(name: String, items: [ASTStructItem]) {
+        var objects: [String:Prototype]
+        var bindings: [StructBinding]
+
+        objects = Dictionary(uniqueKeysWithValues: items.compactMap {
+            switch $0 {
+                case let .object(name, tags):
+                    return (name, Prototype(tags: Set(tags)))
+            default: return nil
+            } 
+        })
+
+        bindings = items.compactMap {
+            switch $0 {
+                case let .binding(origin, slot, target):
+                    return StructBinding(from: origin, slot: slot, to: target)
+            default: return nil
+            } 
+        }
+
+
+        let structure = Structure(objects: objects, bindings: bindings)
+        model.insertStruct(structure, name: name)
     }
 }
 
