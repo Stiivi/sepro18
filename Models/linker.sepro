@@ -4,23 +4,23 @@
 # Define slot symbols to make compiler warn us when we try to use them as tags
 # TODO: Docstrings are not yet supported
 # "Left slot in linker"
-def slot site_a
+DEF SLOT site_a
 # "Right slot in linker"
-def slot site_b
+DEF SLOT site_b
 # "Next node in chain"
-def slot next
-def tag linker
-def tag link
+DEF SLOT next
+DEF TAG linker
+DEF TAG link
 
 REACT primer
     WHERE (linker !site_a)
     ON (free link)
-    in left
-        bind site_a to other
-        set wait_right
+    IN left
+        BIND site_a TO other
+        SET wait_right
 
-    in right
-        unset free
+    IN right
+        UNSET free
 
 REACT _wait_right
     WHERE (wait_right)
@@ -54,13 +54,6 @@ ACT _cleanup
         UNSET cleanup
         SET wait_right
 
-
-STRUCT link_
-    OBJ _ (free link)
-
-STRUCT linker_
-    OBJ _ (linker)
-
 WORLD main
-    30 link_
-    3 linker_
+    30 (free link)
+    3 (linker)

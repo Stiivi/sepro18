@@ -391,13 +391,41 @@ public final class Compiler {
         return result
     }
     func compileWorld(name: String, items: [ASTWorldItem]) {
-        let prototypes = items.map {
-            item in
-            QuantifiedStruct(count: item.count,
-                             name: item.structName)
-        } 
+        let namedStructs: [QuantifiedStruct] = items.compactMap {
+            switch $0 {
+            case let .quantifiedStructure(count, name):
+                return QuantifiedStruct(count: count, name: name)
+            default:
+                return nil
+            }
+        }
 
-        let world = World(structs: prototypes)
+        let freeObjects: [(count: Int, tags: [String])] = items.compactMap {
+            switch $0 {
+            case let .quantifiedObject(count, tags):
+                return (count: count, tags: tags)
+            default:
+                return nil
+            }
+        }
+
+        // Create anonymous structures
+        var constructedStructs: [QuantifiedStruct] = []
+
+        freeObjects.enumerated().forEach {
+            let (offset, element) = $0
+            let proto = Prototype(tags: Set(element.tags))
+            let structure = Structure(objects: ["_":proto], bindings: []) 
+            let name = "__Anonymous\(offset)__"
+
+            // FIXME: name is not unique when multiple worlds are given
+            let qStruct = QuantifiedStruct(count: element.count,
+                                           name: name)
+            constructedStructs.append(qStruct)
+            model.insertStruct(structure, name: name)
+        }
+
+        let world = World(structs: namedStructs + constructedStructs)
         model.insertWorld(world, name: name)
     }
     func compileStruct(name: String, items: [ASTStructItem]) {

@@ -144,12 +144,22 @@ struct ASTTransition: ASTNode {
 }
 
 
-struct ASTWorldItem: ASTNode {
-    let count: Int
-    let structName: String
+enum ASTWorldItem: ASTNode {
+    case quantifiedStructure(Int, String)
+    case quantifiedObject(Int, [String])
 
     var symbols: [ASTTypedSymbol] {
-        return [ASTTypedSymbol(structName, type: .structure)]
+        let result: [ASTTypedSymbol]
+        
+        switch self {
+        case let .quantifiedStructure(_, name):
+            result = [ASTTypedSymbol(name, type: .structure)]
+        case let .quantifiedObject(_, tags):
+            result = tags.map {
+                ASTTypedSymbol($0, type: .tag)
+            }
+        }
+        return result
     }
 }
 

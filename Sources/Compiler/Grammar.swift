@@ -161,9 +161,17 @@ let struct_ =
     (^"STRUCT" *> %"name") + some(struct_item)
         => { ASTModelObject.structure($0.0, $0.1)}
 
-let world_item =
+let quantified_object =
+    number("count") + tag_list
+        => { ASTWorldItem.quantifiedObject($0.0, $0.1) }
+
+let quantified_struct =
     number("count") + %"struct name"
-        => { ASTWorldItem(count: $0.0, structName: $0.1) }
+        => { ASTWorldItem.quantifiedStructure($0.0, $0.1) }
+
+let world_item =
+    quantified_struct
+    || quantified_object
 
 
 let world =
