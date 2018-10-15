@@ -32,7 +32,7 @@ public final class Compiler {
             if let type = typedSymbol.type {
                 if !model.define(symbol: typedSymbol.symbol, type: type) {
                     let previousType = model.typeOf(symbol: typedSymbol.symbol)
-                    fatalError("Multiple types for symbol \(typedSymbol.symbol). Trying to define as \(type) previously defined as \(previousType!)")
+                    fatalError("Multiple types for symbol '\(typedSymbol.symbol)': used as \(type) previously defined as \(previousType!)")
                 }
             }
             else {

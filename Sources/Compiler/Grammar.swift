@@ -103,7 +103,7 @@ let selector =
 let modifier =
     (^"BIND" *> %"subject_slot")
         + (^"TO" *> qualified_symbol) => ASTModifier.bind
-    || ^"UNBIND" *> ^"subject_slot"           => ASTModifier.unbind
+    || ^"UNBIND" *> %"subject_slot"           => ASTModifier.unbind
     || ^"SET" *> %"tag"               => ASTModifier.set
     || ^"UNSET" *> %"tag"             => ASTModifier.unset
 
