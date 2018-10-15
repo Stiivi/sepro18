@@ -4,6 +4,8 @@ import Model
 ///
 public final class Compiler {
     public var model: Model
+    // Counter for the anonymous structres to assign special naming
+    public var anonStructCounter: Int = 1
 
     public init() {
         model = Model()
@@ -416,14 +418,14 @@ public final class Compiler {
             let (offset, element) = $0
             let proto = Prototype(tags: Set(element.tags))
             let structure = Structure(objects: ["_":proto], bindings: []) 
-            let name = "__Anonymous\(offset)__"
+            let name = "__anonymous\(anonStructCounter + offset)__"
 
-            // FIXME: name is not unique when multiple worlds are given
             let qStruct = QuantifiedStruct(count: element.count,
                                            name: name)
             constructedStructs.append(qStruct)
             model.insertStruct(structure, name: name)
         }
+        anonStructCounter += freeObjects.count
 
         let world = World(structs: namedStructs + constructedStructs)
         model.insertWorld(world, name: name)
@@ -452,5 +454,6 @@ public final class Compiler {
         let structure = Structure(objects: objects, bindings: bindings)
         model.insertStruct(structure, name: name)
     }
+
 }
 
