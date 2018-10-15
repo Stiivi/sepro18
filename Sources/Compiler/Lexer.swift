@@ -346,7 +346,7 @@ public class Lexer {
 
             result = .symbol
         }
-        else if accept(character: "\"") {
+        else if accept(character: "\"", discard: true) {
             result = scanString()
         }
         else if accept(from: Lexer.operatorCharacters) {
