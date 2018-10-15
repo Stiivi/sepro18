@@ -26,6 +26,7 @@ public final class Compiler {
         // (to check for bindings)
         //
         let symbols = items.map { $0.symbols }.joined()
+        var undefinedCandidates: Set<Symbol> = []
 
         symbols.forEach {
             typedSymbol in
@@ -36,10 +37,24 @@ public final class Compiler {
                 }
             }
             else {
-                debugPrint("WARNING: Untyped symbol: \(typedSymbol.symbol)")
+                undefinedCandidates.insert(typedSymbol.symbol)
             }
+
             // TODO: What to do with unknown symbols?
         }
+
+        let undefined: Set<Symbol> = undefinedCandidates.subtracting(Set(model.symbols.keys))
+        
+        if !undefined.isEmpty {
+            print("WARNING: Undefined symbols: \(undefined)")
+        }
+
+        debugPrint("# Symbol Table")
+        model.symbols.keys.sorted().forEach {
+            let type = model.symbols[$0]!
+            debugPrint(" - \($0): \(type.rawValue)") 
+        }
+
 
         // PHASE II. Read model objects
         //
@@ -73,6 +88,8 @@ public final class Compiler {
             compileStruct(name: name, items: items)
         case let .world(name, items):
             compileWorld(name: name, items: items)
+        case let .data(tags, text):
+            compileData(tags: tags, text: text)
         }
     }
 
@@ -453,6 +470,11 @@ public final class Compiler {
 
         let structure = Structure(objects: objects, bindings: bindings)
         model.insertStruct(structure, name: name)
+    }
+
+    func compileData(tags: [String], text: String) {
+        let item = DataItem(tags: Set(tags), text: text)
+        model.appendData(item)
     }
 
 }

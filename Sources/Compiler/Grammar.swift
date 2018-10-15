@@ -179,12 +179,17 @@ let world =
         => { ASTModelObject.world($0.0, $0.1) }
 
 
+let data =
+    ^"DATA" *> (tag_list + text("data string"))
+        => { ASTModelObject.data($0.0, $0.1) }
+
 let model_object =
     define
     || unary_actuator
     || binary_actuator
     || struct_
     || world
+    || data
 
 
 let model =

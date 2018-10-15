@@ -55,24 +55,62 @@ final class CLIDelegate: SimulatorDelegate {
         simulator.simulation.container.references.forEach {
             oid in
             let obj = simulator.simulation.container[oid]
-            writeObject(oid: oid, object: obj, into: writer)
+
+            // Get raw dot attribute string for every tag of the object
+            // FIXME: This is _very_ unsafe, but helps us style our output for
+            // the time being
+            var attributeData: [String:[DataItem]] = [:]
+            attributeData["color"] = obj.tags.flatMap {
+                simulator.simulation.model.getData(tags:Set(["dot_color", $0]))
+            }
+            attributeData["shape"] = obj.tags.flatMap {
+                simulator.simulation.model.getData(tags:Set(["dot_shape", $0]))
+            }
+            attributeData["style"] = obj.tags.flatMap {
+                simulator.simulation.model.getData(tags:Set(["dot_style", $0]))
+            }
+            attributeData["fillcolor"] = obj.tags.flatMap {
+                simulator.simulation.model.getData(tags:Set(["dot_fillcolor", $0]))
+            }
+            writeObject(oid: oid, object: obj, attributeData: attributeData, into: writer)
         }
 
         writer.close()
     }
 	/// Write object node and it's relationships from slots. Nodes
 	/// are labelled with object ids.
-	func writeObject(oid: OID, object: Object, into writer: DotWriter) {
+	func writeObject(oid: OID, object: Object, attributeData: [String:[DataItem]], into writer: DotWriter) {
 		var attrs = Dictionary<String, String>()
-		let tags = object.tags.sorted().joined(separator:",")
-		let label = "\(oid):\(tags)"
+		let tagsString = object.tags.sorted().joined(separator:",")
+		let label = "\(oid):\(tagsString)"
+
+        let color = attributeData["color"]?.first {
+            item in
+            !item.tags.isDisjoint(with:object.tags)
+        }?.text
+
+        let shape = attributeData["shape"]?.first {
+            item in
+            !item.tags.isDisjoint(with:object.tags)
+        }?.text
+
+        let style = attributeData["style"]?.first {
+            item in
+            !item.tags.isDisjoint(with:object.tags)
+        }?.text
+        let fillcolor = attributeData["fillcolor"]?.first {
+            item in
+            !item.tags.isDisjoint(with:object.tags)
+        }?.text
 
         // Node
         // ----------------
 
 		attrs["fontname"] = "Helvetica"
-		attrs["shape"] = "box"
-		attrs["style"] = "rounded"
+        attrs["color"] = color ?? "black"
+        attrs["fillcolor"] = fillcolor ?? "white"
+		attrs["shape"] = shape ?? "box"
+		attrs["style"] = style ?? "rounded"
         attrs["label"] = label
 		attrs["fontsize"] = "11"
         writer.writeNode(oid.description, attributes: attrs)

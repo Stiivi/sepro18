@@ -24,6 +24,7 @@ enum ASTModelObject: ASTNode {
     case binaryActuator(String, ASTSelector, ASTSelector, [ASTTransition])
     case structure(String, [ASTStructItem])
     case world(String, [ASTWorldItem])
+    case data([String], String)
 
     var symbols: [ASTTypedSymbol] {
         let result: [ASTTypedSymbol]
@@ -52,6 +53,9 @@ enum ASTModelObject: ASTNode {
         case let .world(name, items):
             result = [ASTTypedSymbol(name, type: .world)]
                      + items.flatMap { $0.symbols } 
+        case .data(_, _):
+            // DATA tags are free of type
+            result = []
         }
         return result
     }

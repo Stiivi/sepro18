@@ -12,7 +12,7 @@ public struct SeproSignal {
 public class SeproSimulation: IterativeSimulation {
     public typealias Signal = SeproSignal
 
-    let model: Model
+    public let model: Model
     // FIXME: [IMPORTANT] Don't make it public!
     public let container: Container
 

@@ -5,7 +5,7 @@ public typealias Symbol = String
 
 /// Type of a symbol within a model.
 ///
-public enum SymbolType {
+public enum SymbolType: String {
     /// Symbol represents a slot
     case slot
     /// Symbol represents a tag
@@ -13,6 +13,7 @@ public enum SymbolType {
     case structure
     case world
     case actuator
+    case data
 
     public init?(name: String) {
         switch name {
@@ -21,6 +22,7 @@ public enum SymbolType {
         case "structure": self = .structure
         case "world": self = .world
         case "actuator": self = .actuator
+        case "data": self = .data
         default: return nil
         }
     }
@@ -335,6 +337,16 @@ public struct Structure {
     }
 }
 
+public struct DataItem {
+    public let tags: Set<Symbol>
+    public let text: String
+
+    public init(tags: Set<Symbol>, text: String) {
+        self.tags = tags
+        self.text = text
+    }
+}
+
 /// Sepro model description.
 ///
 public class Model: CustomStringConvertible {
@@ -346,6 +358,8 @@ public class Model: CustomStringConvertible {
     public var binaryActuators: [String:BinaryActuator] = [:]
     public var structs: [String:Structure] = [:]
     public var worlds: [String:World] = [:]
+
+    public var data: [DataItem] = []
 
     public init() {
     }
@@ -414,6 +428,10 @@ public class Model: CustomStringConvertible {
             "WORLD \(key) ..."
         }
 
+        items += data.map {
+            "DATA (\($0.tags)) ..."
+        }
+
         return items.joined(separator: "\n")
 
     }
@@ -423,6 +441,21 @@ public class Model: CustomStringConvertible {
     }
     public func insertStruct(_ structure: Structure, name: String) {
         structs[name] = structure 
+    }
+    public func appendData(_ item: DataItem) {
+        data.append(item)
+    }
+
+    /// Get data that match the `tags`. If `exact` is `true` then the data
+    /// tags and `tags` must be equal sets, otherwise the `tags` is only subset
+    /// of the data tags.
+    public func getData(tags:Set<Symbol>, exact: Bool=true) -> [DataItem] {
+        if exact {
+            return self.data.filter { $0.tags == tags }
+        }
+        else {
+            return self.data.filter { tags.isSubset(of:$0.tags) }
+        }
     }
 }
 
