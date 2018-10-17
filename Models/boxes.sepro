@@ -5,16 +5,15 @@ def tag box
 def tag lid
 
 react bind
-    where (box !neck)
-    on (lid !used)
+    where (box !neck) on (lid !used)
     in left
         bind neck to other
     
     in right
         set used
 
-struct main
+world main
     10 (box)
-    10 (lid)
+    2 (lid)
 
 
