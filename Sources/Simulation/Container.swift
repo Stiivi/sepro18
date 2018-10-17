@@ -106,15 +106,15 @@ public class Container {
 
     /// FIXME: 
     func matches(_ oid: OID, patterns: [SubjectMode:SelectorPattern]) -> Bool{
-        let containsNotMatching = patterns.contains {
+        let flag = patterns.allSatisfy {
             item in
 
-            self.effectiveSubject(oid, mode: item.key).map {
-                !self.matches($0, pattern: item.value)
+            effectiveSubject(oid, mode: item.key).map {
+                matches($0, pattern: item.value)
             } ?? false
         }
 
-        return !containsNotMatching
+        return flag
     }
     /// Check whether object referenced by `OID` matches `pattern`.
     ///
@@ -140,10 +140,14 @@ public class Container {
         guard let object = objects[oid] else {
             preconditionFailure("Invalid object reference \(oid)")
         }
+        let effective: OID?
+
         switch mode {
-        case .direct: return oid
-        case .indirect(let slot): return object.references[slot]
+        case .direct: effective = oid
+        case .indirect(let slot): effective = object.references[slot]
         }
+
+        return effective
     }
 
     /// Applies set of transitions to object `oid`.
