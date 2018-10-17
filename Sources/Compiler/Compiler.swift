@@ -183,12 +183,13 @@ public final class Compiler {
                         return (slot, .direct(target.symbol))
                     }
                 }
-            case let .unset(slot):
+            case let .unbind(slot):
                 return (slot, .none)
-            default:
+            case .set, .unset:
                 return nil
             }
         }
+
         let bindings = Dictionary(bindList,
                                   uniquingKeysWith: { (_, last) in last })
 
@@ -236,9 +237,9 @@ public final class Compiler {
                         fatalError("Invalid binding target in binary actuator: \(target.symbol)")
                     }
                 }
-            case let .unset(slot):
+            case let .unbind(slot):
                 return (slot, .none)
-            default:
+            case .set, .unset:
                 return nil
             }
         }
