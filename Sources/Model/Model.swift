@@ -41,7 +41,7 @@ public enum Presence {
 
 /// Mask for symbol matching in a selector
 ///
-public struct SymbolMask {
+public struct SymbolMask: CustomStringConvertible {
     public let mask: [Symbol:Presence]
 
     public init(mask: [Symbol:Presence]) {
@@ -98,11 +98,32 @@ public struct SymbolMask {
         return result.joined(separator: " ")
         
     }
+
+    public var description: String {
+        var result: [String] = []
+        
+        result += mask.map {
+            item in
+            let (symbol, presence) = (item.key, item.value)
+
+            let prefix: String
+
+            switch presence {
+            case .present: prefix = ""
+            case .absent: prefix = "!"
+            }
+
+            return prefix + symbol
+        }
+
+        return "(" + result.joined(separator: " ") + ")"
+        
+    }
 }
 
 /// Pattern matching an object based on presence or absence of tags or slots
 ///
-public struct SelectorPattern {
+public struct SelectorPattern: CustomStringConvertible {
     public let tags: SymbolMask
     public let slots: SymbolMask
 
@@ -111,11 +132,14 @@ public struct SelectorPattern {
         self.slots = slots
     }
 
+    public var description: String {
+        return "{tags: \(tags), slots: \(slots)}"
+    }
 }
 
 /// Object specifying which objects to select based on a pattern matching mask.
 ///
-public enum Selector {
+public enum Selector: CustomStringConvertible {
     /// Match all objects.
     case all
     /// Match only objects matching a patter.
@@ -147,7 +171,7 @@ public enum Selector {
 
 /// Type specifying indirection of a subject to be considered in a selector.
 ///
-public enum SubjectMode: Hashable {
+public enum SubjectMode: Hashable, CustomStringConvertible {
     /// Refers to a direct subject
     case direct
     /// Refers to a slot in a subject
@@ -157,6 +181,13 @@ public enum SubjectMode: Hashable {
         switch self {
         case .direct: return subject
         case .indirect(let slot): return "\(subject).\(slot)"
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .direct: return "direct"
+        case .indirect(let slot): return "indirect(\(slot))"
         }
     }
 }
@@ -172,7 +203,7 @@ public enum UnaryTarget {
     case indirect(Symbol, Symbol)
 }
 
-public struct UnaryTransition {
+public struct UnaryTransition: CustomStringConvertible {
     
     public let tags: SymbolMask
     public let bindings: [Symbol: UnaryTarget]
@@ -180,6 +211,27 @@ public struct UnaryTransition {
     public init(tags: SymbolMask, bindings: [Symbol:UnaryTarget]){
         self.tags = tags
         self.bindings = bindings
+    }
+
+    public var description: String {
+        var result: [String] = []
+
+        result += tags.presentSymbols.map { "SET \($0)" }
+        result += tags.absentSymbols.map { "UNSET \($0)" }
+        result += bindings.map {
+            item in
+            let symbol = item.key
+            let target = item.value
+
+            switch target {
+            case .none: return "UNBIND \(symbol)" 
+            case .subject: return "BIND \(symbol) TO SELF" 
+            case let .direct(s): return "BIND \(symbol) TO \(s)"
+            case let .indirect(s, t): return "BIND \(symbol) TO \(s).\(t)"
+            }
+        }
+
+        return result.joined(separator: " ")
     }
 }
 
