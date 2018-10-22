@@ -12,8 +12,9 @@ func usage() {
           Usage: \(CommandLine.arguments[0]) [-o OUTPUT] MODEL STEPS
 
           Options:
-            -o                Output directory. Default: ./out
             --dump-symbols    Dump symbol table
+            -o DIR            Output directory. Default: ./out
+            -w WORLD          World name to initialize simlation. Default: main
           """)
 }
 
@@ -36,6 +37,8 @@ func parseArguments(args: [String]) -> ParsedArguments {
             options["dump_symbols"] = "true"
         case "-o", "--output":
             options["output"] = iterator.next()
+        case "-w", "--world":
+            options["world"] = iterator.next()
         default:
             positional.append(arg)
 
@@ -82,6 +85,7 @@ func main() {
     let compiler = Compiler()
     let outPath: String = args.options["output", default: "out"]
     let dumpSymbols: Bool = args.options["dump_symbols"] == "true"
+    let worldName: String = args.options["world", default: "main"]
 
     guard args.positional.count == 2 else {
         usage()
@@ -102,7 +106,6 @@ func main() {
     catch {
         errorExit("Unable to create output directory '\(outPath)'")
     }
-
 
     // Load and Compile model
     // -----------------------------------------------------------------------
@@ -131,20 +134,21 @@ func main() {
         printSymbolTable(symbols: model.symbols) 
     }
 
-
-    print("Initializing simulation...")
+    // Initialize the simulator
+    // -----------------------------------------------------------------------
+    // FIXME: Untie this initialization
+    guard let mainWorld = compiler.model.worlds[worldName] else {
+        errorExit("No world with name '\(worldName)' found")
+    }
+    print("Initializing simulation with world '\(worldName)'...")
 
     let container = Container()
     let simulation = SeproSimulation(model: compiler.model, container: container)
     let delegate = CLIDelegate(outputPath: outPath)
     let simulator = IterativeSimulator(simulation: simulation, delegate: delegate)
 
-
-    // FIXME: Untie this initialization
-    guard let mainWorld = compiler.model.worlds["main"] else {
-        errorExit("No world with name 'main' found")
-    }
-
+    // Initialize the structures
+    // -----------------------------------------------------------------------
     mainWorld.structs.forEach {
         qstruct in
         (0..<qstruct.count).forEach {
@@ -156,9 +160,10 @@ func main() {
         }
     }
 
+    // Run the simulation
+    // -----------------------------------------------------------------------
     simulator.run(steps: stepCount)
 
 }
 
 main()
-
