@@ -7,12 +7,17 @@ import Compiler
 import Model
 
 
+let SEPRO_VERSION = "0.1"
+
+
 func usage() {
     print("""
-          Usage: \(CommandLine.arguments[0]) [-o OUTPUT] MODEL STEPS
+          Sepro18 simulator runner v\(SEPRO_VERSION)
+
+          Usage: \(CommandLine.arguments[0]) [options] MODEL STEPS
 
           Options:
-            --dump-symbols    Dump symbol table
+            --dump-symbols    Dump symbol table.
             -o DIR            Output directory. Default: ./out
             -w WORLD          World name to initialize simlation. Default: main
           """)
@@ -78,6 +83,11 @@ func printSymbolTable(symbols: [String:SymbolType]) {
     }
 }
 
+func printVersion() -> Never {
+    print(SEPRO_VERSION)
+    exit(0)
+}
+
 func main() {
     let args = parseArguments(args: CommandLine.arguments)
     let source: String
@@ -94,17 +104,6 @@ func main() {
 
     guard let stepCount = Int(args.positional[1]) else {
         errorExit("Invalid number of steps '\(args.positional[1])'")
-    }
-
-    // Create output directories
-    // -----------------------------------------------------------------------
-    let fileManager = FileManager()
-    do {
-        try fileManager.createDirectory(atPath:outPath,
-                                        withIntermediateDirectories: true)
-    }
-    catch {
-        errorExit("Unable to create output directory '\(outPath)'")
     }
 
     // Load and Compile model

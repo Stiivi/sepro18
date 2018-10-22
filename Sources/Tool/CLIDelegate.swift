@@ -3,13 +3,17 @@ import Simulation
 import DotWriter
 import Model
 
+import Foundation
+
 final class CLIDelegate: SimulatorDelegate {
     typealias S = SeproSimulation
 
-	let path: String
+	let outputPath: String
+    let dotsPath: String
 
 	init(outputPath: String) {
-        path = outputPath
+        self.outputPath = outputPath
+        dotsPath = outputPath + "/dots"
 	}
 
 	func didHalt(simulator: IterativeSimulator<S, CLIDelegate>) {
@@ -22,11 +26,30 @@ final class CLIDelegate: SimulatorDelegate {
 
 	func dotFileName(sequence: Int) -> String {
 		let name = String(format: "%06d.dot", sequence)
-        // FIXME: crete path
-		return self.path + "/dots/" + name
+		return dotsPath + name
 	}
 
 	func willRun(simulator: IterativeSimulator<S, CLIDelegate>) {
+        // Create output directories
+        // -----------------------------------------------------------------------
+        let fileManager = FileManager.default
+
+        do {
+            try fileManager.createDirectory(atPath:outputPath,
+                                            withIntermediateDirectories: true)
+        }
+        catch {
+            fatalError("Unable to create output directory '\(outputPath)'")
+        }
+
+        do {
+            try fileManager.createDirectory(atPath:dotsPath,
+                                            withIntermediateDirectories: true)
+        }
+        catch {
+            fatalError("Unable to create dot files directory '\(dotsPath)'")
+        }
+
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
