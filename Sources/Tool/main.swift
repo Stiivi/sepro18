@@ -74,7 +74,7 @@ func printSymbolTable(symbols: [String:SymbolType]) {
         lhs.key.lowercased() > rhs.key.lowercased()
     }
     .forEach {
-        print(String(format: "    %16@ %@", $0.key, $0.value.rawValue)) 
+        print("    \($0.key) \($0.value.rawValue)") 
     }
 }
 
