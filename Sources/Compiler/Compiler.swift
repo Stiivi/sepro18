@@ -49,13 +49,6 @@ public final class Compiler {
             print("WARNING: Undefined symbols: \(undefined)")
         }
 
-        debugPrint("# Symbol Table")
-        model.symbols.keys.sorted().forEach {
-            let type = model.symbols[$0]!
-            debugPrint(" - \($0): \(type.rawValue)") 
-        }
-
-
         // PHASE II. Read model objects
         //
 

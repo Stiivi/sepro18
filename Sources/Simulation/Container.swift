@@ -56,7 +56,7 @@ public class Container {
             guard let target = newObjects[binding.toName] else {
                 fatalError("Unknown structure target '\(binding.toName)'")
             }
-            guard var object = objects[origin] else {
+            guard let object = objects[origin] else {
                 fatalError("Invalid object reference \(origin)")
             }
 
@@ -170,10 +170,11 @@ public class Container {
     func update(_ effectiveOid: OID,
                 with transition: UnaryTransition,
                 subject subjectOid: OID) {
-        guard var subject = objects[subjectOid] else {
+        // TODO: Warning: This was `var`
+        guard let subject = objects[subjectOid] else {
             preconditionFailure("Invalid object reference \(subjectOid)")
         }
-        guard var effective = objects[effectiveOid] else {
+        guard let effective = objects[effectiveOid] else {
             preconditionFailure("Invalid object reference \(effectiveOid)")
         }
 
