@@ -11,7 +11,6 @@ public struct OID: Hashable, CustomStringConvertible {
     }
 
     public var description: String { return String(id) }
-    
 }
 
 
@@ -38,5 +37,3 @@ public class Object: CustomStringConvertible {
     }
 
 }
-
-

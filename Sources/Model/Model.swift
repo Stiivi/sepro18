@@ -49,16 +49,12 @@ public struct SymbolMask: CustomStringConvertible {
     }
 
     public var presentSymbols: Set<Symbol> {
-        let result = mask.filter {
-            item in item.1 == .present
-        }.map { $0.0 }
+        let result = mask.filter { $0.1 == .present }.map { $0.0 }
 
         return Set(result)
     }
     public var absentSymbols: Set<Symbol> {
-        let result = mask.filter {
-            item in item.1 == .absent
-        }.map { $0.0 }
+        let result = mask.filter { $0.1 == .absent }.map { $0.0 }
 
         return Set(result)
     }
@@ -72,11 +68,10 @@ public struct SymbolMask: CustomStringConvertible {
 
     public func descriptionWithSubject(_ mode: SubjectMode) -> String {
         var result: [String] = []
-        
+
         result += mask.map {
-            item in
-            let symbol = item.key
-            let presence = item.value
+            let symbol = $0.key
+            let presence = $0.value
 
             let prefix: String
             let subject: String
@@ -96,15 +91,14 @@ public struct SymbolMask: CustomStringConvertible {
         }
 
         return result.joined(separator: " ")
-        
+
     }
 
     public var description: String {
         var result: [String] = []
-        
+
         result += mask.map {
-            item in
-            let (symbol, presence) = (item.key, item.value)
+            let (symbol, presence) = ($0.key, $0.value)
 
             let prefix: String
 
@@ -117,7 +111,7 @@ public struct SymbolMask: CustomStringConvertible {
         }
 
         return "(" + result.joined(separator: " ") + ")"
-        
+
     }
 }
 
@@ -152,15 +146,13 @@ public enum Selector: CustomStringConvertible {
         case .all: result = ["ALL"]
         case .match(let matches):
             result += matches.compactMap {
-                item in
-                let mode = item.key
-                let pattern = item.value
+                let mode = $0.key
+                let pattern = $0.value
                 return pattern.tags.descriptionWithSubject(mode)
             }
             result += matches.compactMap {
-                item in
-                let mode = item.key
-                let pattern = item.value
+                let mode = $0.key
+                let pattern = $0.value
                 return pattern.slots.descriptionWithSubject(mode)
             }
         }
@@ -204,11 +196,11 @@ public enum UnaryTarget {
 }
 
 public struct UnaryTransition: CustomStringConvertible {
-    
+
     public let tags: SymbolMask
     public let bindings: [Symbol: UnaryTarget]
 
-    public init(tags: SymbolMask, bindings: [Symbol:UnaryTarget]){
+    public init(tags: SymbolMask, bindings: [Symbol:UnaryTarget]) {
         self.tags = tags
         self.bindings = bindings
     }
@@ -219,15 +211,15 @@ public struct UnaryTransition: CustomStringConvertible {
         result += tags.presentSymbols.map { "SET \($0)" }
         result += tags.absentSymbols.map { "UNSET \($0)" }
         result += bindings.map {
-            item in
-            let symbol = item.key
-            let target = item.value
+            let symbol = $0.key
+            let target = $0.value
 
             switch target {
-            case .none: return "UNBIND \(symbol)" 
-            case .subject: return "BIND \(symbol) TO SELF" 
-            case let .direct(s): return "BIND \(symbol) TO \(s)"
-            case let .indirect(s, t): return "BIND \(symbol) TO \(s).\(t)"
+            case .none: return "UNBIND \(symbol)"
+            case .subject: return "BIND \(symbol) TO SELF"
+            case let .direct(target): return "BIND \(symbol) TO \(target)"
+            case let .indirect(slot, target):
+                return "BIND \(symbol) TO \(slot).\(target)"
             }
         }
 
@@ -245,7 +237,7 @@ public struct UnaryActuator {
 
     public init(selector: Selector, transitions: [SubjectMode:UnaryTransition],
                 notifications: Set<Symbol>, traps: Set<Symbol>, halts: Bool) {
-                
+
         self.selector = selector
         self.transitions = transitions
         self.notifications = notifications
@@ -278,13 +270,12 @@ public struct BinaryTransition: CustomStringConvertible {
         result += tags.presentSymbols.map { "SET \($0)" }
         result += tags.absentSymbols.map { "UNSET \($0)" }
         result += bindings.map {
-            item in
-            let symbol = item.key
-            let target = item.value
+            let symbol = $0.key
+            let target = $0.value
 
             switch target {
-            case .none: return "UNBIND \(symbol)" 
-            case .other: return "BIND \(symbol) TO OTHER" 
+            case .none: return "UNBIND \(symbol)"
+            case .other: return "BIND \(symbol) TO OTHER"
             case .inOther(let indirect): return "BIND \(symbol) TO OTHER.\(indirect)"
             }
         }
@@ -324,7 +315,7 @@ public struct BinaryActuator: CustomStringConvertible {
 
         result = [
             "WHERE", "(", leftSelector.description, ")",
-            "ON", "(", rightSelector.description, ")",
+            "ON", "(", rightSelector.description, ")"
         ]
 
         result += leftTransitions.map {
@@ -435,7 +426,7 @@ public class Model: CustomStringConvertible {
         if let previous = symbols[symbol] {
             if previous == type {
                 return true
-            } 
+            }
             else {
                 return false
             }
@@ -454,29 +445,25 @@ public class Model: CustomStringConvertible {
     }
 
     public var description: String {
-        var items: Array<String> = []
+        var items: [String] = []
 
-        items += symbols.filter {
-            (key, value) in value == .slot || value == .tag
+        items += symbols.filter { (_, value) in
+            value == .slot || value == .tag
         }.map { (key, value) in "DEF \(value) \(key)" }
 
-        items += unaryActuators.map {
-            (key, value) in
+        items += unaryActuators.map { (key, _) in
             "ACT \(key) ..."
         }
 
-        items += binaryActuators.map {
-            (key, value) in
+        items += binaryActuators.map { (key, value) in
             "REACT \(key) \(value)"
         }
 
-        items += structs.map {
-            (key, value) in
+        items += structs.map { (key, _) in
             "STRUCT \(key) ..."
         }
 
-        items += worlds.map {
-            (key, value) in
+        items += worlds.map { (key, _) in
             "WORLD \(key) ..."
         }
 
@@ -489,10 +476,10 @@ public class Model: CustomStringConvertible {
     }
 
     public func insertWorld(_ world: World, name: String) {
-        worlds[name] = world 
+        worlds[name] = world
     }
     public func insertStruct(_ structure: Structure, name: String) {
-        structs[name] = structure 
+        structs[name] = structure
     }
     public func appendData(_ item: DataItem) {
         data.append(item)
@@ -510,4 +497,3 @@ public class Model: CustomStringConvertible {
         }
     }
 }
-

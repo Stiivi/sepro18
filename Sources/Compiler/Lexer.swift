@@ -39,7 +39,7 @@ public enum TokenType: Equatable, CustomStringConvertible {
         case .symbol: return "symbol"
         case .intLiteral: return "int"
         case .stringLiteral: return "string"
-		case .operator: return "operator"
+        case .operator: return "operator"
         }
     }
 }
@@ -103,7 +103,7 @@ public class Lexer {
 	typealias Index = String.UnicodeScalarView.Index
 
     var iterator: String.UnicodeScalarView.Iterator
-    var currentChar: UnicodeScalar? = nil
+    var currentChar: UnicodeScalar?
     var text: String
 
     public var position: TextPosition
@@ -152,7 +152,7 @@ public class Lexer {
     public func parse() -> [Token] {
         var tokens = [Token]()
 
-        loop: while(true) {
+        loop: while true {
             let token = self.next()
 
             tokens.append(token)
@@ -267,26 +267,26 @@ public class Lexer {
                     if accept(character: "\"", discard: true)
                         && accept(character: "\"", discard: true)
                         && accept(character: "\"", discard: true) {
-                        
+
                         return .stringLiteral
                     }
                     else if accept(character: "\\") && atEnd {
                         // Unexpected end of string - expected escaped character
                         break
                     }
-                    advance() 
+                    advance()
                 }
             }
             else {
                 // We got an empty string
                 return .stringLiteral
             }
-        
+
         }
         else {
             while !atEnd {
                 // Escape character
-                if accept(character: "\"", discard: true){
+                if accept(character: "\"", discard: true) {
                     return .stringLiteral
                 }
                 else if accept(character: "\\") && atEnd {
@@ -299,9 +299,9 @@ public class Lexer {
                 advance()
             }
         }
-        
+
         return .error("Unexpected end of string")
-        
+
     }
 
     /// Parse next token.
@@ -312,7 +312,7 @@ public class Lexer {
         let result: TokenType
 
         // Skip whitespace
-        while(true){
+        while true {
             if accept(character: "#") {
                 acceptUntil(from: CharacterSet.newlines)
             }
@@ -352,11 +352,11 @@ public class Lexer {
         else if accept(from: Lexer.operatorCharacters) {
             result = .operator
         }
-        else{
+        else {
             let error = currentChar.map {
                             "Unexpected character '\($0)'"
                         } ?? "Unexpected end"
-            
+
             result = .error(error)
         }
 
@@ -372,4 +372,3 @@ public class Lexer {
     }
 
 }
-

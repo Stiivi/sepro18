@@ -7,20 +7,20 @@
 // TODO: Error handling
 //
 
-public protocol SimulatorDelegate {
-    associatedtype S: IterativeSimulation
+public protocol SimulatorDelegate: AnyObject {
+    associatedtype Sim: IterativeSimulation
 
-	func willRun(simulator: IterativeSimulator<S, Self>)
-	func didRun(simulator: IterativeSimulator<S, Self>)
-	func willStep(simulator: IterativeSimulator<S, Self>)
-	func didStep(simulator: IterativeSimulator<S, Self>, signal: S.Signal?)
+	func willRun(simulator: IterativeSimulator<Sim, Self>)
+	func didRun(simulator: IterativeSimulator<Sim, Self>)
+	func willStep(simulator: IterativeSimulator<Sim, Self>)
+	func didStep(simulator: IterativeSimulator<Sim, Self>, signal: Sim.Signal?)
 
-	func didHalt<S>(simulator: IterativeSimulator<S, Self>)
+	func didHalt<Sim>(simulator: IterativeSimulator<Sim, Self>)
 }
 
 
 public class IterativeSimulator<S,
-                       D: SimulatorDelegate> where D.S == S {
+                       D: SimulatorDelegate> where D.Sim == S {
     typealias Signal = S.Signal
 
     public let simulation: S
@@ -28,7 +28,7 @@ public class IterativeSimulator<S,
     public internal(set) var stepCount: Int = 0
     public internal(set) var isHalted: Bool = false
 
-    public var delegate: D? = nil
+    public weak var delegate: D?
 
     public init(simulation: S, delegate: D?=nil) {
         self.simulation = simulation
@@ -50,7 +50,7 @@ public class IterativeSimulator<S,
 		// 	// TODO: this should be called only on first run
 		// 	probe()
 		// }
-		
+
 		delegate?.willRun(simulator:self)
 
 		for _ in 1...steps {
@@ -83,9 +83,8 @@ public class IterativeSimulator<S,
         if case .halt(_) = result {
             isHalted = true
         }
-		
+
         delegate?.didStep(simulator: self, signal: result.signal)
     }
 
 }
-

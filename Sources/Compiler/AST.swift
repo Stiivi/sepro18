@@ -38,22 +38,22 @@ enum ASTModelObject: ASTNode {
         case let .unaryActuator(name, sel, mods):
             result = [ASTTypedSymbol(name, type: .actuator)]
                      + sel.symbols
-                     + mods.flatMap { $0.symbols } 
+                     + mods.flatMap { $0.symbols }
 
         case let .binaryActuator(name, lsel, rsel, mods):
             result = [ASTTypedSymbol(name, type: .actuator)]
                      + lsel.symbols
                      + rsel.symbols
-                     + mods.flatMap { $0.symbols } 
+                     + mods.flatMap { $0.symbols }
 
         case let .structure(name, items):
             result = [ASTTypedSymbol(name, type: .structure)]
-                     + items.flatMap { $0.symbols } 
+                     + items.flatMap { $0.symbols }
 
         case let .world(name, items):
             result = [ASTTypedSymbol(name, type: .world)]
-                     + items.flatMap { $0.symbols } 
-        case .data(_, _):
+                     + items.flatMap { $0.symbols }
+        case .data:
             // DATA tags are free of type
             result = []
         }
@@ -147,14 +147,13 @@ struct ASTTransition: ASTNode {
     }
 }
 
-
 enum ASTWorldItem: ASTNode {
     case quantifiedStructure(Int, String)
     case quantifiedObject(Int, [String])
 
     var symbols: [ASTTypedSymbol] {
         let result: [ASTTypedSymbol]
-        
+
         switch self {
         case let .quantifiedStructure(_, name):
             result = [ASTTypedSymbol(name, type: .structure)]

@@ -33,8 +33,8 @@ func parseArguments(args: [String]) -> ParsedArguments {
     var options: [String:String] = [:]
     var positional: [String] = []
     // Eat the command name
-    let _ = iterator.next()
-    
+    _ = iterator.next()
+
     while let arg = iterator.next() {
         switch arg {
         case       "--dump-symbols":
@@ -74,12 +74,11 @@ func errorExit(_ message: String) -> Never {
 
 func printSymbolTable(symbols: [String:SymbolType]) {
     print("Symbol Table:")
-    symbols.sorted {
-        rhs, lhs in
+    symbols.sorted { rhs, lhs in
         lhs.key.lowercased() > rhs.key.lowercased()
     }
     .forEach {
-        print("    \($0.key) \($0.value.rawValue)") 
+        print("    \($0.key) \($0.value.rawValue)")
     }
 }
 
@@ -130,7 +129,7 @@ func main() {
     print("    Binary actuators: \(model.unaryActuators.count)")
 
     if dumpSymbols {
-        printSymbolTable(symbols: model.symbols) 
+        printSymbolTable(symbols: model.symbols)
     }
 
     // Initialize the simulator
@@ -148,10 +147,8 @@ func main() {
 
     // Initialize the structures
     // -----------------------------------------------------------------------
-    mainWorld.structs.forEach {
-        qstruct in
-        (0..<qstruct.count).forEach {
-            _ in
+    for qstruct in mainWorld.structs {
+        for _ in 0..<qstruct.count {
             guard let structure = model.structs[qstruct.structName] else {
                 fatalError("No structure '\(qstruct.structName)'")
             }

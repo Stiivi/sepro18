@@ -17,17 +17,17 @@ extension Token: EmptyCheckable {
 // =======================================================================
 
 prefix operator ^
-prefix func ^(value: String) -> Parser<Token, String>{
+prefix func ^ (value: String) -> Parser<Token, String> {
     return keyword(value)
 }
 
-prefix func %(value: String) -> Parser<Token, Symbol>{
+prefix func % (value: String) -> Parser<Token, Symbol> {
     return symbol(value)
 }
 
 infix operator ... : BindPrecedence
-public func ...<T, A, B>(p: Parser<T,A>, sep:Parser<T,B>) -> Parser<T,[A]> {
-    return separated(p, sep)
+public func ... <T, A, B>(parser: Parser<T, A>, sep:Parser<T, B>) -> Parser<T, [A]> {
+    return separated(parser, sep)
 }
 
 
@@ -40,23 +40,21 @@ func token(_ type: TokenType, _ expected: String) -> Parser<Token, Token> {
 
 func tokenValue(_ type: TokenType, _ value: String) -> Parser<Token, Token> {
     return satisfy(value) {
-        token in
-            token.type == type && token.text == value
+            $0.type == type && $0.text == value
         }
 }
 
 func isKeyword(_ value: String) -> Parser<Token, Token> {
     return satisfy(value) {
-        token in
-            token.type == .symbol && token.text.uppercased() == value
+            $0.type == .symbol && $0.text.uppercased() == value
         }
 }
 
-let symbol  = { name  in token(.symbol, name)  => { t in Symbol(describing:t.text) } }
-let keyword = { kw    in isKeyword(kw)  => { t in t.text.uppercased() } }
-let number  = { label in token(.intLiteral, label) => { t in Int(t.text)! } }
-let text    = { label in token(.stringLiteral, label) => { t in t.text } }
-let op      = { o     in tokenValue(.operator, o) }
+let symbol  = { name    in token(.symbol, name)  => { Symbol(describing: $0.text) } }
+let keyword = { keyword in isKeyword(keyword)  => { $0.text.uppercased() } }
+let number  = { label   in token(.intLiteral, label) => { Int($0.text)! } }
+let text    = { label   in token(.stringLiteral, label) => { $0.text } }
+let op      = {            tokenValue(.operator, $0) }
 
 
 // Model Objects
@@ -74,9 +72,7 @@ let define =
 //
 
 let qualified_symbol =
-    %"symbol" + option(op(".") *> %"symbol") =>
-        {
-            (left, right) in
+    %"symbol" + option(op(".") *> %"symbol") => { (left, right) in
 
             ASTQualifiedSymbol(
                 // If there is left.right, then qualifier is the left side,
@@ -202,7 +198,7 @@ func parse(source: String) -> [ASTModelObject] {
 
     let result = model.parse(tokens.stream())
 
-    switch(result) {
+    switch result {
     case .OK(let value, _):
         return value
     case let .Fail(error, token):
@@ -211,4 +207,3 @@ func parse(source: String) -> [ASTModelObject] {
         fatalError("ERROR near \(token): \(error)")
     }
 }
-

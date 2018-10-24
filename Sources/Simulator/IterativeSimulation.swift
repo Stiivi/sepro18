@@ -5,7 +5,7 @@ public enum StepResult<Signal> {
 
     public var signal: Signal? {
         switch self {
-        case .error(_): return nil
+        case .error: return nil
         case .ok(let signal): return signal
         case .halt(let signal): return signal
         }
@@ -16,4 +16,3 @@ public protocol IterativeSimulation {
     associatedtype Signal
     func step() -> StepResult<Signal>
 }
-

@@ -83,9 +83,8 @@ public class SeproSimulation: IterativeSimulation {
 
 	public func debugDump() {
 		debugPrint(">>> SIMULATOR DUMP START\n")
-		self.container.objects.keys.forEach {
-			ref in
-            let obj = container[ref]
+		for key in container.objects.keys {
+            let obj = container[key]
 			debugPrint("    \(obj)")
 		}
 		debugPrint("<<< END OF DUMP\n")

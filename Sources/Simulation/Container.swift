@@ -12,7 +12,6 @@ public class Container {
     public var references: AnyCollection<OID> {
         return AnyCollection(objects.keys)
     }
-    
 
     public init() {
         objects = [OID:Object]()
@@ -46,10 +45,9 @@ public class Container {
             structure.objects.map {
                 ($0.key, create(prototype: $0.value))
             }
-        ) 
+        )
 
-        structure.bindings.forEach {
-            binding in
+        for binding in structure.bindings {
             guard let origin = newObjects[binding.fromName] else {
                 fatalError("Unknown structure origin '\(binding.fromName)'")
             }
@@ -79,9 +77,9 @@ public class Container {
         let result: AnyCollection<OID>
 
         switch selector {
-        case .all: 
+        case .all:
             result = AnyCollection(objects.keys.lazy)
-        case .match(let patterns): 
+        case .match(let patterns):
             let filtered = objects.keys.lazy.filter {
                 self.matches($0, patterns: patterns)
             }
@@ -96,19 +94,17 @@ public class Container {
     ///
     func matches(_ oid: OID, selector: Selector) -> Bool {
         switch selector {
-        case .all: 
-            return true 
-        case .match(let patterns): 
+        case .all:
+            return true
+        case .match(let patterns):
             return matches(oid, patterns: patterns)
         }
 
     }
 
     /// FIXME: 
-    func matches(_ oid: OID, patterns: [SubjectMode:SelectorPattern]) -> Bool{
-        let flag = patterns.allSatisfy {
-            item in
-
+    func matches(_ oid: OID, patterns: [SubjectMode:SelectorPattern]) -> Bool {
+        let flag = patterns.allSatisfy { item in
             effectiveSubject(oid, mode: item.key).map {
                 matches($0, pattern: item.value)
             } ?? false
@@ -124,7 +120,7 @@ public class Container {
         guard let object = objects[oid] else {
             preconditionFailure("Invalid object reference \(oid)")
         }
-        
+
         return pattern.tags.matches(object.tags)
                 && pattern.slots.matches(object.slots)
     }
@@ -153,16 +149,13 @@ public class Container {
     /// Applies set of transitions to object `oid`.
     ///
     func update(_ oid: OID, with transitions: [SubjectMode:UnaryTransition]) {
-        transitions.forEach {
-            trans in
-
-            if let effective = effectiveSubject(oid, mode: trans.key) {
+        for transition in transitions {
+            if let effective = effectiveSubject(oid, mode: transition.key) {
                 update(effective,
-                       with: trans.value,
+                       with: transition.value,
                        subject: oid)
             }
-        }    
-         
+        }
     }
 
     /// Applies unary transition to `effective` subject with original subject
@@ -180,13 +173,11 @@ public class Container {
 
         effective.tags.formUnion(transition.tags.presentSymbols)
         effective.tags.subtract(transition.tags.absentSymbols)
-       
-        transition.bindings.forEach {
-            binding in
 
+        for (subjectSlot, targetType) in transition.bindings {
             let target: OID?
 
-            switch binding.value {
+            switch targetType {
             case .none:
                 target = nil
             case .subject:
@@ -202,7 +193,7 @@ public class Container {
                             }
             }
 
-            effective.references[binding.key] = target
+            effective.references[subjectSlot] = target
         }
 
         objects[effectiveOid] = effective
@@ -216,39 +207,35 @@ public class Container {
                 with transitions: [SubjectMode:BinaryTransition],
                 other: OID) {
 
-        transitions.forEach {
-            trans in
-
-            if let effective = effectiveSubject(oid, mode: trans.key) {
+        for (subjectMode, transition) in transitions {
+            if let effective = effectiveSubject(oid, mode: subjectMode) {
                 update(effective,
-                       with: trans.value,
+                       with: transition,
                        other: other)
             }
-        }    
-         
+        }
     }
+
     /// Update an object within a binary interaction using `transition` and
     /// other interating object as `other`.
     ///
     func update(_ effectiveOid: OID,
                 with transition: BinaryTransition,
                 other otherOid: OID) {
-        guard var effective = objects[effectiveOid] else {
+        guard let effective = objects[effectiveOid] else {
             preconditionFailure("Invalid object reference \(effectiveOid)")
         }
-        guard var other = objects[otherOid] else {
+        guard let other = objects[otherOid] else {
             preconditionFailure("Invalid object reference \(otherOid)")
         }
 
         effective.tags.formUnion(transition.tags.presentSymbols)
         effective.tags.subtract(transition.tags.absentSymbols)
-       
-        transition.bindings.forEach {
-            binding in
 
+        for (subjectSlot, targetMode) in transition.bindings {
             let target: OID?
 
-            switch binding.value {
+            switch targetMode {
             case .none:
                 target = nil
             case .other:
@@ -257,7 +244,7 @@ public class Container {
                 target = other.references[symbol]
             }
 
-            effective.references[binding.key] = target
+            effective.references[subjectSlot] = target
         }
 
         objects[effectiveOid] = effective
@@ -273,5 +260,3 @@ public class Container {
         return objects[object]!.slots
     }
 }
-
-

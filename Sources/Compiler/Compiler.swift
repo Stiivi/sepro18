@@ -3,6 +3,13 @@ import Model
 /// Sepro compiler - complies ASTModelObjects into model
 ///
 public final class Compiler {
+    // Internal structure for hashable purposes of the (mode, symbol) tuple
+    struct ModeSymbol: Hashable {
+        let mode: SubjectMode
+        let symbol: String
+    }
+    typealias ExpandedMatch = (mode: SubjectMode, symbol: String, presence:Presence)
+
     public var model: Model
     // Counter for the anonymous structres to assign special naming
     public var anonStructCounter: Int = 1
@@ -28,23 +35,26 @@ public final class Compiler {
         let symbols = items.map { $0.symbols }.joined()
         var undefinedCandidates: Set<Symbol> = []
 
-        symbols.forEach {
-            typedSymbol in
-            if let type = typedSymbol.type {
-                if !model.define(symbol: typedSymbol.symbol, type: type) {
-                    let previousType = model.typeOf(symbol: typedSymbol.symbol)
-                    fatalError("Multiple types for symbol '\(typedSymbol.symbol)': used as \(type) previously defined as \(previousType!)")
+        for symbol in symbols {
+            if let type = symbol.type {
+                if !model.define(symbol: symbol.symbol, type: type) {
+                    let previousType = model.typeOf(symbol: symbol.symbol)
+                    fatalError("""
+                               Multiple types for symbol '\(symbol.symbol)': \
+                               used as \(type) \
+                               previously defined as \(previousType!)
+                               """)
                 }
             }
             else {
-                undefinedCandidates.insert(typedSymbol.symbol)
+                undefinedCandidates.insert(symbol.symbol)
             }
 
             // TODO: What to do with unknown symbols?
         }
 
         let undefined: Set<Symbol> = undefinedCandidates.subtracting(Set(model.symbols.keys))
-        
+
         if !undefined.isEmpty {
             print("WARNING: Undefined symbols: \(undefined)")
         }
@@ -55,8 +65,8 @@ public final class Compiler {
         // At this point we assume all symbols are known. If they are not, then
         // it is a fatal error and we sohuld not proceed.
         //
-        items.forEach {
-            compile(modelObject: $0)
+        for item in items {
+            compile(modelObject: item)
         }
     }
 
@@ -100,10 +110,9 @@ public final class Compiler {
         let transList: [(SubjectMode, UnaryTransition)]
 
         transList = transitions.map {
-            trans in
             let mode: SubjectMode
-            mode = trans.subject.slot.map { .indirect($0) } ?? .direct
-            return (mode, compileUnaryTransition(trans))
+            mode = $0.subject.slot.map { .indirect($0) } ?? .direct
+            return (mode, compileUnaryTransition($0))
         }
 
         let transDict = Dictionary(transList, uniquingKeysWith: { (_, last) in last })
@@ -115,7 +124,7 @@ public final class Compiler {
             notifications: Set(),
             traps: Set(),
             halts: false
-        )                               
+        )
 
         model.insertActuator(unary: actuator, name: name)
     }
@@ -133,7 +142,7 @@ public final class Compiler {
         // FIXME: check for dupes
         // Current implementation: take the latest in the list
         let mask = Dictionary(maskList, uniquingKeysWith: { (_, last) in last })
-   
+
         return SymbolMask(mask: mask)
     }
 
@@ -162,16 +171,16 @@ public final class Compiler {
                 // slot.slot -> indirect (slot, slot)
                 if let qual = target.qualifier {
                     if qual == "THIS" {
-                        return (slot, .direct(target.symbol))            
+                        return (slot, .direct(target.symbol))
                     }
                     else {
-                        return (slot, .indirect(qual, target.symbol))            
+                        return (slot, .indirect(qual, target.symbol))
                     }
                 }
                 else {
                     if target.symbol == "THIS" {
                         return (slot, .subject)
-                    } 
+                    }
                     else {
                         return (slot, .direct(target.symbol))
                     }
@@ -214,7 +223,7 @@ public final class Compiler {
                 // slot.slot -> indirect (slot, slot)
                 if let qual = target.qualifier {
                     if qual.uppercased() == "OTHER" {
-                        return (slot, .inOther(target.symbol))            
+                        return (slot, .inOther(target.symbol))
                     }
                     else {
                         fatalError("Indirection in biary actuator: \(qual).\(slot)")
@@ -223,7 +232,7 @@ public final class Compiler {
                 else {
                     if target.symbol.uppercased() == "OTHER" {
                         return (slot, .other)
-                    } 
+                    }
                     else {
                         // TODO: Should we allow that?
                         // This can be done through tags as non-atomic
@@ -243,17 +252,18 @@ public final class Compiler {
 
     }
 
-    func compileBinaryActuator(name: String, leftSelector: ASTSelector,
-            rightSelector: ASTSelector, transitions: [ASTTransition]) {
+    func compileBinaryActuator(name: String,
+                               leftSelector: ASTSelector,
+                               rightSelector: ASTSelector,
+                               transitions: [ASTTransition]) {
         let leftCompiled: Selector = compileSelector(leftSelector)
         let rightCompiled: Selector = compileSelector(rightSelector)
 
         let leftTransList = transitions.filter {
             $0.subject.side == "LEFT"
         }.map {
-            trans in
-            (trans.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
-             compileBinaryTransition(trans))
+            ($0.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
+             compileBinaryTransition($0))
         }
         let leftTrans = Dictionary(leftTransList,
                                    uniquingKeysWith: { (_, last) in last })
@@ -261,9 +271,8 @@ public final class Compiler {
         let rightTransList = transitions.filter {
             $0.subject.side == "RIGHT"
         }.map {
-            trans in
-            (trans.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
-             compileBinaryTransition(trans))
+            ($0.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
+             compileBinaryTransition($0))
         }
         let rightTrans = Dictionary(rightTransList,
                                    uniquingKeysWith: { (_, last) in last })
@@ -280,8 +289,6 @@ public final class Compiler {
         )
 
         model.insertActuator(binary: actuator, name: name)
-
-
     }
 
     func compileSelector(_ selector: ASTSelector) -> Selector {
@@ -303,34 +310,25 @@ public final class Compiler {
         // Convert (isPresent, (qual, symbol)
         //          -> (mode, type, symbol, presence)
 
-
-        // Internal structure for hashable purposes of the (mode, symbol) tuple
-        struct ModeSymbol: Hashable {
-            let mode: SubjectMode
-            let symbol: String
-        }
-
         // Expand the matches for easier downstream handling:
         // - convert presence flag into Presence type
         // - convert qualifier into indirection
         // - extract symbol
         //
-        let expandedMatches: [(mode: SubjectMode, symbol: String, presence:Presence)] = matches.map {
-            match in
+        let expandedMatches: [ExpandedMatch] =
+        matches.map {
+            let presence: Presence = $0.isPresent ? .present : .absent
+            let mode: SubjectMode = $0.symbol.qualifier.map { .indirect($0) } ?? .direct
+            let symbol = $0.symbol.symbol
 
-            let presence: Presence = match.isPresent ? .present : .absent
-            let mode: SubjectMode = match.symbol.qualifier.map { .indirect($0) } ?? .direct
-            let symbol = match.symbol.symbol
-           
             return (mode: mode, symbol: symbol, presence: presence)
         }
-        
+
         // Check for uniqueness of symbols within a mode
         //
         let (_, dupes) = expandedMatches.map {
-            ModeSymbol(mode: $0.mode, symbol: $0.symbol)  
-        }.reduce(into: (Set<ModeSymbol>(), Set<ModeSymbol>())) {
-            state, next in
+            ModeSymbol(mode: $0.mode, symbol: $0.symbol)
+        }.reduce(into: (Set<ModeSymbol>(), Set<ModeSymbol>())) { state, next in
             // Tuple items:
             // 0 - seen
             // 1 - dupes
@@ -343,7 +341,7 @@ public final class Compiler {
                 state.0.insert(next)
             }
         }
-    
+
         // Fail if we have duplicates
         //
         // TODO: we need to improve on error reporting here - we need to know
@@ -352,12 +350,11 @@ public final class Compiler {
             fatalError("Duplicate use of selector symbols: \(dupes) ")
 
         }
-      
+
         // Group matches by subject mode
         //
         var byMode: [SubjectMode:[(Symbol, Presence)]] = [:]
-        byMode = expandedMatches.reduce(into: byMode) {
-            state, next in
+        byMode = expandedMatches.reduce(into: byMode) { state, next in
 
             let (mode, symbol, presence) = next
 
@@ -372,19 +369,17 @@ public final class Compiler {
         // Final conversion to selector patterns
         //
         let patterns: [(SubjectMode, SelectorPattern)] = byMode.map {
-            item in
-            let mode = item.key
-            let presences = item.value
+            let mode = $0.key
+            let presences = $0.value
 
             var slots: [Symbol:Presence] = [:]
             var tags: [Symbol:Presence] = [:]
 
-            presences.forEach {
-                (symbol, presence) in
+            for (symbol, presence) in presences {
                 guard let type: SymbolType = model.typeOf(symbol: symbol) else {
                     fatalError("Unknown type of symbol '\(symbol)'")
                 }
-                
+
                 switch type {
                 case .slot: slots[symbol] = presence
                 case .tag: tags[symbol] = presence
@@ -398,7 +393,7 @@ public final class Compiler {
         }
         // Generate selector pattern
         let result: [SubjectMode:SelectorPattern]
-        
+
         result = Dictionary(patterns, uniquingKeysWith: { (first, _) in first })
 
         return result
@@ -425,10 +420,9 @@ public final class Compiler {
         // Create anonymous structures
         var constructedStructs: [QuantifiedStruct] = []
 
-        freeObjects.enumerated().forEach {
-            let (offset, element) = $0
+        for (offset, element) in freeObjects.enumerated() {
             let proto = Prototype(tags: Set(element.tags))
-            let structure = Structure(objects: ["_":proto], bindings: []) 
+            let structure = Structure(objects: ["_":proto], bindings: [])
             let name = "__anonymous\(anonStructCounter + offset)__"
 
             let qStruct = QuantifiedStruct(count: element.count,
@@ -447,20 +441,19 @@ public final class Compiler {
 
         objects = Dictionary(uniqueKeysWithValues: items.compactMap {
             switch $0 {
-                case let .object(name, tags):
-                    return (name, Prototype(tags: Set(tags)))
+            case let .object(name, tags):
+                return (name, Prototype(tags: Set(tags)))
             default: return nil
-            } 
+            }
         })
 
         bindings = items.compactMap {
             switch $0 {
-                case let .binding(origin, slot, target):
-                    return StructBinding(from: origin, slot: slot, to: target)
+            case let .binding(origin, slot, target):
+                return StructBinding(from: origin, slot: slot, to: target)
             default: return nil
-            } 
+            }
         }
-
 
         let structure = Structure(objects: objects, bindings: bindings)
         model.insertStruct(structure, name: name)
@@ -470,6 +463,4 @@ public final class Compiler {
         let item = DataItem(tags: Set(tags), text: text)
         model.appendData(item)
     }
-
 }
-

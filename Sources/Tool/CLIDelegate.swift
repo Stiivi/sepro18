@@ -6,7 +6,7 @@ import Model
 import Foundation
 
 final class CLIDelegate: SimulatorDelegate {
-    typealias S = SeproSimulation
+    typealias Sim = SeproSimulation
 
 	let outputPath: String
     let dotsPath: String
@@ -16,11 +16,11 @@ final class CLIDelegate: SimulatorDelegate {
         dotsPath = outputPath + "/dots"
 	}
 
-	func didHalt(simulator: IterativeSimulator<S, CLIDelegate>) {
+	func didHalt(simulator: IterativeSimulator<Sim, CLIDelegate>) {
 		print("Halted!")
 	}
 
-	func handleTrap(simulator: IterativeSimulator<S, CLIDelegate>, traps: Set<Symbol>) {
+	func handleTrap(simulator: IterativeSimulator<Sim, CLIDelegate>, traps: Set<Symbol>) {
 		print("Traps!")
 	}
 
@@ -29,7 +29,7 @@ final class CLIDelegate: SimulatorDelegate {
 		return dotsPath + name
 	}
 
-	func willRun(simulator: IterativeSimulator<S, CLIDelegate>) {
+	func willRun(simulator: IterativeSimulator<Sim, CLIDelegate>) {
         // Create output directories
         // -----------------------------------------------------------------------
         let fileManager = FileManager.default
@@ -54,29 +54,28 @@ final class CLIDelegate: SimulatorDelegate {
                  simulator: simulator)
 	}
 
-	func didRun(simulator: IterativeSimulator<S, CLIDelegate>) {
+	func didRun(simulator: IterativeSimulator<Sim, CLIDelegate>) {
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
 
-	func willStep(simulator: IterativeSimulator<S, CLIDelegate>) {
+	func willStep(simulator: IterativeSimulator<Sim, CLIDelegate>) {
 		writeDot(path: dotFileName(sequence: simulator.stepCount),
                  simulator: simulator)
 	}
 
-	func didStep(simulator: IterativeSimulator<S, CLIDelegate>,
-                 signal: S.Signal?) {
+	func didStep(simulator: IterativeSimulator<Sim, CLIDelegate>,
+                 signal: Sim.Signal?) {
 		// do nothing
 	}
 
-    func writeDot(path: String, simulator: IterativeSimulator<S, CLIDelegate>) {
+    func writeDot(path: String, simulator: IterativeSimulator<Sim, CLIDelegate>) {
         let writer = DotWriter(path: path,
                                name: "g",
                                type: .directed)
 
         // FIXME: This is accessing internal
-        simulator.simulation.container.references.forEach {
-            oid in
+        for oid in simulator.simulation.container.references {
             let obj = simulator.simulation.container[oid]
 
             // Get raw dot attribute string for every tag of the object
@@ -103,27 +102,23 @@ final class CLIDelegate: SimulatorDelegate {
 	/// Write object node and it's relationships from slots. Nodes
 	/// are labelled with object ids.
 	func writeObject(oid: OID, object: Object, attributeData: [String:[DataItem]], into writer: DotWriter) {
-		var attrs = Dictionary<String, String>()
+		var attrs: [String:String] = [:]
 		let tagsString = object.tags.sorted().joined(separator:",")
 		let label = "\(oid):\(tagsString)"
 
         let color = attributeData["color"]?.first {
-            item in
-            !item.tags.isDisjoint(with:object.tags)
+            !$0.tags.isDisjoint(with:object.tags)
         }?.text
 
         let shape = attributeData["shape"]?.first {
-            item in
-            !item.tags.isDisjoint(with:object.tags)
+            !$0.tags.isDisjoint(with:object.tags)
         }?.text
 
         let style = attributeData["style"]?.first {
-            item in
-            !item.tags.isDisjoint(with:object.tags)
+            !$0.tags.isDisjoint(with:object.tags)
         }?.text
         let fillcolor = attributeData["fillcolor"]?.first {
-            item in
-            !item.tags.isDisjoint(with:object.tags)
+            !$0.tags.isDisjoint(with:object.tags)
         }?.text
 
         // Node
@@ -141,17 +136,16 @@ final class CLIDelegate: SimulatorDelegate {
         // Edges
         // ----------------
 
-        object.references.forEach {
-            key, value in
-            var edgeAttrs = Dictionary<String, String>() 
+        for (slot, target) in object.references {
+            var edgeAttrs: [String: String] = [:]
 
             // TODO: Default attributes
-			edgeAttrs["label"] = key
+			edgeAttrs["label"] = slot
 			edgeAttrs["fontname"] = "Helvetica"
 			edgeAttrs["fontsize"] = "9"
 
             writer.writeEdge(from: oid.description,
-                             to: value.description,
+                             to: target.description,
                              attributes: edgeAttrs)
 		}
 	}
