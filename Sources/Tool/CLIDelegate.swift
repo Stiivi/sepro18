@@ -26,7 +26,7 @@ final class CLIDelegate: SimulatorDelegate {
 
 	func dotFileName(sequence: Int) -> String {
 		let name = String(format: "%06d.dot", sequence)
-		return dotsPath + name
+		return "\(dotsPath)/\(name)"
 	}
 
 	func willRun(simulator: IterativeSimulator<Sim, CLIDelegate>) {
