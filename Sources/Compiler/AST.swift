@@ -18,10 +18,17 @@ struct ASTTypedSymbol {
     }
 }
 
+enum ASTSignal {
+    case halt
+    case notify([String])
+    case trap([String])
+}
+
 enum ASTModelObject: ASTNode {
     case define(String, String)
-    case unaryActuator(String, ASTSelector, [ASTTransition])
-    case binaryActuator(String, ASTSelector, ASTSelector, [ASTTransition])
+    case unaryActuator(String, ASTSelector, [ASTTransition], [ASTSignal])
+    case binaryActuator(String, ASTSelector, ASTSelector,
+                        [ASTTransition], [ASTSignal])
     case structure(String, [ASTStructItem])
     case world(String, [ASTWorldItem])
     case data([String], String)
@@ -35,12 +42,12 @@ enum ASTModelObject: ASTNode {
             result = [ASTTypedSymbol(sym, type: SymbolType(name:
                 type.lowercased()))]
 
-        case let .unaryActuator(name, sel, mods):
+        case let .unaryActuator(name, sel, mods, _):
             result = [ASTTypedSymbol(name, type: .actuator)]
                      + sel.symbols
                      + mods.flatMap { $0.symbols }
 
-        case let .binaryActuator(name, lsel, rsel, mods):
+        case let .binaryActuator(name, lsel, rsel, mods, _):
             result = [ASTTypedSymbol(name, type: .actuator)]
                      + lsel.symbols
                      + rsel.symbols
