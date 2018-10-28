@@ -4,51 +4,9 @@
 import Model
 import ParserCombinator
 
-// FIXME: This is required for ParserCombinator, which needs to be rethinked
-
-extension Token: EmptyCheckable {
-    public static var emptyValue: Token {
-        return Token(.empty, text: "", position: TextPosition())
-    }
-    public var isEmpty: Bool { return type == .empty }
-}
-
-// Convenience grammar operators
-// =======================================================================
-
-prefix operator ^
-prefix func ^ (value: String) -> Parser<Token, String> {
-    return keyword(value)
-}
-
-prefix func % (value: String) -> Parser<Token, Symbol> {
-    return symbol(value)
-}
-
-infix operator ... : BindPrecedence
-public func ... <T, A, B>(parser: Parser<T, A>, sep:Parser<T, B>) -> Parser<T, [A]> {
-    return separated(parser, sep)
-}
-
 
 // Terminals
 // =======================================================================
-
-func token(_ type: TokenType, _ expected: String) -> Parser<Token, Token> {
-    return satisfy(expected) { token in token.type == type }
-}
-
-func tokenValue(_ type: TokenType, _ value: String) -> Parser<Token, Token> {
-    return satisfy(value) {
-            $0.type == type && $0.text == value
-        }
-}
-
-func isKeyword(_ value: String) -> Parser<Token, Token> {
-    return satisfy(value) {
-            $0.type == .symbol && $0.text.uppercased() == value
-        }
-}
 
 let symbol  = { name    in token(.symbol, name)  => { Symbol(describing: $0.text) } }
 let keyword = { keyword in isKeyword(keyword)  => { $0.text.uppercased() } }
@@ -60,9 +18,8 @@ let op      = {            tokenValue(.operator, $0) }
 // Model Objects
 // =======================================================================
 
-
 let symbol_type =
-    ^"TAG" || ^"SLOT"
+    ^"TAG" || ^"SLOT" || ^"ACTUATOR" || ^"STRUCTURE" || ^"WORLD"
 
 let define =
     ^"DEF" *> (symbol_type + %"name") => ASTModelObject.define
@@ -99,7 +56,7 @@ let selector =
 let modifier =
     (^"BIND" *> %"subject_slot")
         + (^"TO" *> qualified_symbol) => ASTModifier.bind
-    || ^"UNBIND" *> %"subject_slot"           => ASTModifier.unbind
+    || ^"UNBIND" *> %"subject_slot"   => ASTModifier.unbind
     || ^"SET" *> %"tag"               => ASTModifier.set
     || ^"UNSET" *> %"tag"             => ASTModifier.unset
 
@@ -134,7 +91,6 @@ let binary_actuator =
 
 let tag_list =
     op("(") *> many(%"tag") <* op(")")
-
 
 
 let struct_object =
