@@ -13,11 +13,22 @@ public protocol SimulatorDelegate: AnyObject {
 	func willRun(simulator: IterativeSimulator<Sim, Self>)
 	func didRun(simulator: IterativeSimulator<Sim, Self>)
 	func willStep(simulator: IterativeSimulator<Sim, Self>)
-	func didStep(simulator: IterativeSimulator<Sim, Self>, signal: Sim.Signal?)
+	func didStep(simulator: IterativeSimulator<Sim, Self>, signal: Sim.Signal)
 
 	func didHalt<Sim>(simulator: IterativeSimulator<Sim, Self>)
 }
 
+
+// TODO: Change from delegate to the following functions:
+//
+// (Simulation, Signal) -> None
+// run(after: (Simulation, Signal) -> None)
+// run(before: (Simulation) -> None, after: (Simulation, Signal) -> None)
+// run(before: (Simulation) -> None, after: (Simulation, Signal) -> None)
+//
+// TODO: Rename to more modest `IterativeSimulationRunner`
+// TODO: Use exceptions for error signaling
+//
 
 public class IterativeSimulator<S,
                        D: SimulatorDelegate> where D.Sim == S {
@@ -27,6 +38,10 @@ public class IterativeSimulator<S,
 
     public internal(set) var stepCount: Int = 0
     public internal(set) var isHalted: Bool = false
+
+    /// Error from the last step
+    public internal(set) var error: Error?
+
 
     public weak var delegate: D?
 
@@ -84,7 +99,15 @@ public class IterativeSimulator<S,
             isHalted = true
         }
 
-        delegate?.didStep(simulator: self, signal: result.signal)
+
+        if case .error(let resultError) = result {
+            error = resultError
+            // handle error
+        }
+        else {
+            // We don't signal finished step if error occured.
+            delegate?.didStep(simulator: self, signal: result.signal!)
+        }
     }
 
 }

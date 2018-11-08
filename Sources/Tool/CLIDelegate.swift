@@ -17,11 +17,11 @@ final class CLIDelegate: SimulatorDelegate {
 	}
 
 	func didHalt(simulator: IterativeSimulator<Sim, CLIDelegate>) {
-		print("Halted!")
+        print("Halted!")
 	}
 
 	func handleTrap(simulator: IterativeSimulator<Sim, CLIDelegate>, traps: Set<Symbol>) {
-		print("Traps!")
+		print("Traps: \(traps)")
 	}
 
 	func dotFileName(sequence: Int) -> String {
@@ -64,9 +64,14 @@ final class CLIDelegate: SimulatorDelegate {
                  simulator: simulator)
 	}
 
-	func didStep(simulator: IterativeSimulator<Sim, CLIDelegate>,
-                 signal: Sim.Signal?) {
-		// do nothing
+    func didStep(simulator: IterativeSimulator<Sim, CLIDelegate>, signal:
+                 Sim.Signal) {
+        if !signal.traps.isEmpty {
+            print("Traps: \(signal.traps)")
+        }
+        if !signal.notifications.isEmpty {
+            print("Notifications: \(signal.notifications)")
+        }
 	}
 
     func writeDot(path: String, simulator: IterativeSimulator<Sim, CLIDelegate>) {

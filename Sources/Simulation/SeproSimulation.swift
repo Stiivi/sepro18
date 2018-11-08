@@ -3,8 +3,8 @@ import Model
 
 // TODO: Unused for now, we just need a signal type
 public struct SeproSignal {
-    let traps: Set<Symbol>
-    let messages: Set<Symbol>
+    public let traps: Set<Symbol>
+    public let notifications: Set<Symbol>
 }
 
 /// Simulation of the Sepro model
@@ -24,9 +24,9 @@ public class SeproSimulation: IterativeSimulation {
     var stepCount: Int = 0
 
     public func step() -> StepResult<SeproSignal> {
-        // var notifications = Set<Symbol>()
-        // var traps = Set<Symbol>()
-        // var halts: Bool = false
+        var notifications = Set<Symbol>()
+        var traps = Set<Symbol>()
+        var halts: Bool = false
 
         stepCount += 1
         debugPrint("STEP \(stepCount)")
@@ -43,6 +43,17 @@ public class SeproSimulation: IterativeSimulation {
                     debugPrint("skip")
                     continue
                 }
+
+                if actuator.signal.halts {
+                    halts = true
+                }
+                if !actuator.signal.notifications.isEmpty {
+                    notifications.formUnion(actuator.signal.notifications)
+                }
+                if !actuator.signal.traps.isEmpty {
+                    traps.formUnion(actuator.signal.traps)
+                }
+
                 debugPrint("ACT \(label):\(oid)")
                 container.update(oid, with: actuator.transitions)
             }
@@ -67,6 +78,16 @@ public class SeproSimulation: IterativeSimulation {
                         continue
                     }
 
+                    if actuator.signal.halts {
+                        halts = true
+                    }
+                    if !actuator.signal.notifications.isEmpty {
+                        notifications.formUnion(actuator.signal.notifications)
+                    }
+                    if !actuator.signal.traps.isEmpty {
+                        traps.formUnion(actuator.signal.traps)
+                    }
+
                     debugPrint("REACT \(label): \(left) ON \(right)")
                     container.update(left,
                                      with: actuator.leftTransitions,
@@ -78,7 +99,14 @@ public class SeproSimulation: IterativeSimulation {
             }
         }
 
-        return .ok(signal: nil)
+        if halts {
+            return .halt(signal: SeproSignal(traps: traps,
+                                             notifications: notifications))
+        }
+        else {
+            return .ok(signal: SeproSignal(traps: traps,
+                                             notifications: notifications))
+        }
     }
 
 	public func debugDump() {
