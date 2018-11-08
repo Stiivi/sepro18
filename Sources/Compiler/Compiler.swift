@@ -77,15 +77,18 @@ public final class Compiler {
         case let .define(typeName, symbol):
             compileDefine(typeName:typeName, symbol:symbol)
 
-        case let .unaryActuator(name, selector, transitions):
+        case let .unaryActuator(name, selector, transitions, signals):
             compileUnaryActuator(name: name,
-                            selector: selector,
-                            transitions: transitions)
-        case let .binaryActuator(name, lselector, rselector, transitions):
+                                 selector: selector,
+                                 transitions: transitions,
+                                 signals: signals)
+        case let .binaryActuator(name, lselector, rselector, transitions,
+                                 signals):
             compileBinaryActuator(name: name,
                             leftSelector: lselector,
                             rightSelector: rselector,
-                            transitions: transitions)
+                            transitions: transitions,
+                            signals: signals)
 
         case let .structure(name, items):
             compileStruct(name: name, items: items)
@@ -102,12 +105,42 @@ public final class Compiler {
         // Phase I.
     }
 
+    func compileSignals(signals: [ASTSignal]) -> Signal {
+        let halts = signals.contains {
+            if case .halt = $0 {
+                return true
+            }
+            else {
+                return false
+            }
+        }
+
+        let traps: Set<String> = signals.reduce(into: Set()) { result, signal in
+            if case let .trap(symbols) = signal {
+                result.formUnion(symbols)
+            }
+        }
+
+        let notifications: Set<String> = signals.reduce(into: Set()) { result, signal in
+            if case let .notify(symbols) = signal {
+                result.formUnion(symbols)
+            }
+        }
+
+        return Signal(notifications: notifications,
+                      traps: traps,
+                      halts: halts)
+
+    }
+
     func compileUnaryActuator(name: String, selector: ASTSelector,
-                              transitions: [ASTTransition]) {
+                              transitions: [ASTTransition],
+                              signals: [ASTSignal]) {
         let actuator: UnaryActuator
         let compiledSelector: Selector = compileSelector(selector)
 
         let transList: [(SubjectMode, UnaryTransition)]
+        let compiledSignal = compileSignals(signals: signals)
 
         transList = transitions.map {
             let mode: SubjectMode
@@ -121,9 +154,7 @@ public final class Compiler {
         actuator = UnaryActuator(
             selector: compiledSelector,
             transitions: transDict,
-            notifications: Set(),
-            traps: Set(),
-            halts: false
+            signal: compiledSignal
         )
 
         model.insertActuator(unary: actuator, name: name)
@@ -255,9 +286,12 @@ public final class Compiler {
     func compileBinaryActuator(name: String,
                                leftSelector: ASTSelector,
                                rightSelector: ASTSelector,
-                               transitions: [ASTTransition]) {
+                               transitions: [ASTTransition],
+                               signals: [ASTSignal]) {
         let leftCompiled: Selector = compileSelector(leftSelector)
         let rightCompiled: Selector = compileSelector(rightSelector)
+
+        let compiledSignal = compileSignals(signals: signals)
 
         let leftTransList = transitions.filter {
             $0.subject.side == "LEFT"
@@ -283,9 +317,7 @@ public final class Compiler {
             rightSelector: rightCompiled,
             leftTransitions: leftTrans,
             rightTransitions: rightTrans,
-            notifications: Set(),
-            traps: Set(),
-            halts: false
+            signal: compiledSignal
         )
 
         model.insertActuator(binary: actuator, name: name)

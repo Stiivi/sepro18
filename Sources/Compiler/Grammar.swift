@@ -24,9 +24,17 @@ let symbol_type =
 let define =
     ^"DEF" *> (symbol_type + %"name") => ASTModelObject.define
 
+let tag_list =
+    op("(") *> many(%"tag") <* op(")")
+
 
 // ACTUATOR
 //
+
+let signal =
+    ^"HALT" => { _ in ASTSignal.halt }
+    || ^"NOTIFY" + tag_list => { ASTSignal.notify($0.1)}
+    || ^"TRAP" + tag_list => { ASTSignal.trap($0.1)}
 
 let qualified_symbol =
     %"symbol" + option(op(".") *> %"symbol") => { (left, right) in
@@ -74,9 +82,11 @@ let unary_transition =
     (^"IN" *> unary_subject + many(modifier))
         => { ASTTransition(subject: $0.0, modifiers: $0.1) }
 
+
 let unary_actuator =
-    ((^"ACT" *> %"name") + (^"WHERE" *> selector)) + many(unary_transition)
-        => { ASTModelObject.unaryActuator($0.0.0, $0.0.1, $0.1) }
+    ((^"ACT" *> %"name") + (^"WHERE" *> selector))
+    + (many(signal) + many(unary_transition))
+        => { ASTModelObject.unaryActuator($0.0.0, $0.0.1, $0.1.1, $0.1.0) }
 
 
 let binary_transition =
@@ -84,14 +94,15 @@ let binary_transition =
         => { ASTTransition(subject: $0.0, modifiers: $0.1) }
 
 
+let binary_selector =
+    (^"WHERE" *> selector) + (^"ON" *> selector)
+
+
 let binary_actuator =
-    ((^"REACT" *> %"name") + (^"WHERE" *> selector))
-    + ((^"ON" *> selector) + many(binary_transition))
-        => { ASTModelObject.binaryActuator($0.0.0, $0.0.1, $0.1.0, $0.1.1) }
-
-let tag_list =
-    op("(") *> many(%"tag") <* op(")")
-
+    ((^"REACT" *> %"name") + binary_selector)
+    + (many(signal) + many(binary_transition))
+        => { ASTModelObject.binaryActuator($0.0.0, $0.0.1.0, $0.0.1.1,
+                                           $0.1.1, $0.1.0) }
 
 let struct_object =
     (^"OBJ" *> %"name") + tag_list

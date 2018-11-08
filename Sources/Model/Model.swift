@@ -185,6 +185,19 @@ public enum SubjectMode: Hashable, CustomStringConvertible {
 }
 
 
+public struct Signal {
+    public let notifications: Set<Symbol>
+    public let traps: Set<Symbol>
+    public let halts: Bool
+
+    public init(notifications: Set<Symbol>, traps: Set<Symbol>, halts: Bool) {
+        self.notifications = notifications
+        self.traps = traps
+        self.halts = halts
+    }
+}
+
+
 // Unary
 // =====
 
@@ -231,18 +244,14 @@ public struct UnaryActuator {
     public let selector: Selector
     public let transitions: [SubjectMode:UnaryTransition]
 
-    public let notifications: Set<Symbol>
-    public let traps: Set<Symbol>
-    public let halts: Bool
+    public let signal: Signal
 
     public init(selector: Selector, transitions: [SubjectMode:UnaryTransition],
-                notifications: Set<Symbol>, traps: Set<Symbol>, halts: Bool) {
+                signal: Signal) {
 
         self.selector = selector
         self.transitions = transitions
-        self.notifications = notifications
-        self.traps = traps
-        self.halts = halts
+        self.signal = signal
     }
 }
 
@@ -291,23 +300,17 @@ public struct BinaryActuator: CustomStringConvertible {
     public let leftTransitions: [SubjectMode:BinaryTransition]
     public let rightTransitions: [SubjectMode:BinaryTransition]
 
-    public let notifications: Set<Symbol>
-    public let traps: Set<Symbol>
-    public let halts: Bool
+    public let signal: Signal
 
     public init(leftSelector: Selector, rightSelector: Selector,
                 leftTransitions: [SubjectMode:BinaryTransition],
                 rightTransitions: [SubjectMode:BinaryTransition],
-                notifications: Set<Symbol>,
-                traps: Set<Symbol>,
-                halts: Bool) {
+                signal: Signal) {
         self.leftSelector = leftSelector
         self.rightSelector = rightSelector
         self.leftTransitions = leftTransitions
         self.rightTransitions = rightTransitions
-        self.notifications = notifications
-        self.traps = traps
-        self.halts = halts
+        self.signal = signal
     }
 
     public var description: String {
