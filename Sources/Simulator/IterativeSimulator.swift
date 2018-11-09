@@ -7,31 +7,14 @@
 // TODO: Error handling
 //
 
-public protocol SimulatorDelegate: AnyObject {
-    associatedtype Sim: IterativeSimulation
-
-	func willRun(simulator: IterativeSimulator<Sim, Self>)
-	func didRun(simulator: IterativeSimulator<Sim, Self>)
-	func willStep(simulator: IterativeSimulator<Sim, Self>)
-	func didStep(simulator: IterativeSimulator<Sim, Self>, signal: Sim.Signal)
-
-	func didHalt<Sim>(simulator: IterativeSimulator<Sim, Self>)
-}
-
-
-// TODO: Change from delegate to the following functions:
+// TODO: Add the following function(s)
 //
-// (Simulation, Signal) -> None
-// run(after: (Simulation, Signal) -> None)
-// run(before: (Simulation) -> None, after: (Simulation, Signal) -> None)
 // run(before: (Simulation) -> None, after: (Simulation, Signal) -> None)
 //
-// TODO: Rename to more modest `IterativeSimulationRunner`
 // TODO: Use exceptions for error signaling
 //
 
-public class IterativeSimulator<S,
-                       D: SimulatorDelegate> where D.Sim == S {
+public class IterativeSimulator<S:IterativeSimulation> {
     typealias Signal = S.Signal
 
     public let simulation: S
@@ -43,11 +26,8 @@ public class IterativeSimulator<S,
     public internal(set) var error: Error?
 
 
-    public weak var delegate: D?
-
-    public init(simulation: S, delegate: D?=nil) {
+    public init(simulation: S) {
         self.simulation = simulation
-        self.delegate = delegate
     }
 	/// Runs the simulation for `steps`.
     ///
@@ -55,59 +35,33 @@ public class IterativeSimulator<S,
     /// less that the number of steps requested due to potential halt.
     ///
     @discardableResult
-	public func run(steps:Int) -> Int {
+	public func run(steps:Int, after afterStep: ((S, S.Signal) -> Void)?=nil) -> Int {
         precondition(steps > 0, "Number of steps to run must be greater than 0")
+        precondition(!isHalted, "Can't run halted simulator")
 
         var stepsRun: Int = 0
 
-		// if collector != nil {
-		// 	collector!.collectingWillStart(measures: model.measures, steps: steps)
-		// 	// TODO: this should be called only on first run
-		// 	probe()
-		// }
-
-		delegate?.willRun(simulator:self)
-
 		for _ in 1...steps {
-			step()
-
-			if isHalted {
-				delegate?.didHalt(simulator:self)
-				break
-			}
-
+            let result: StepResult<Signal>
+            
+            result = simulation.step()
+            stepCount += 1
 			stepsRun += 1
+
+            if case .error(let resultError) = result {
+                error = resultError
+                // handle error
+            }
+            else {
+                afterStep?(simulation, result.signal!)
+            }
+
+            if case .halt(_) = result {
+                isHalted = true
+                break
+            }
 		}
 
-		// collector?.collectingDidEnd(steps: stepsRun)
         return stepsRun
 	}
-
-    /// Perform one iteration of the simulation.
-    ///
-    public func step() {
-        precondition(!isHalted, "Can't run halted simulator")
-
-        let result: StepResult<Signal>
-
-		delegate?.willStep(simulator: self)
-
-        result =  simulation.step()
-        stepCount += 1
-
-        if case .halt(_) = result {
-            isHalted = true
-        }
-
-
-        if case .error(let resultError) = result {
-            error = resultError
-            // handle error
-        }
-        else {
-            // We don't signal finished step if error occured.
-            delegate?.didStep(simulator: self, signal: result.signal!)
-        }
-    }
-
 }

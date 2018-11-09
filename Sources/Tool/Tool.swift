@@ -1,3 +1,4 @@
+import Compiler
 import Simulator
 import Simulation
 import DotWriter
@@ -5,31 +6,102 @@ import Model
 
 import Foundation
 
-final class CLIDelegate: SimulatorDelegate {
-    typealias Sim = SeproSimulation
+final class Tool {
 
 	let outputPath: String
     let dotsPath: String
 
-	init(outputPath: String) {
+    let simulator: IterativeSimulator<SeproSimulation>
+    public let model: Model
+
+	init(modelPath: String, outputPath: String) {
+        let compiler = Compiler()
+        let source: String
+
+        print("Loading model from \(modelPath)...")
+
+        do {
+            source = try String(contentsOfFile: modelPath, encoding:String.Encoding.utf8)
+        } catch {
+            errorExit("Unable to read model '\(modelPath)'")
+        }
+
+        print("Compiling model...")
+
+        compiler.compile(source: source)
+        model = compiler.model
+
+        print("Model compiled")
+        print("    Symbol count    : \(model.symbols.count)")
+        print("    Unary actuators : \(model.unaryActuators.count)")
+        print("    Binary actuators: \(model.unaryActuators.count)")
+
+        let container = Container()
+        let simulation = SeproSimulation(model: model, container: container)
+        simulator = IterativeSimulator(simulation: simulation)
+
         self.outputPath = outputPath
         dotsPath = outputPath + "/dots"
 	}
 
-	func didHalt(simulator: IterativeSimulator<Sim, CLIDelegate>) {
-        print("Halted!")
-	}
+    func initializeWorld(_ name: String) {
+        guard let world = model.worlds[name] else {
+            fatalError("Unknown world '\(name)'")
+        }
 
-	func handleTrap(simulator: IterativeSimulator<Sim, CLIDelegate>, traps: Set<Symbol>) {
-		print("Traps: \(traps)")
-	}
+        print("Initializing simulation with world '\(name)'...")
+
+        // Initialize the structures
+        // -----------------------------------------------------------------------
+        for qstruct in world.structs {
+            for _ in 0..<qstruct.count {
+                guard let structure = model.structs[qstruct.structName] else {
+                    fatalError("No structure '\(qstruct.structName)'")
+                }
+                // FIXME: too deep access
+                simulator.simulation.container.create(structure: structure)
+            }
+        }
+    }
+
+    func printSymbolTable() {
+        let symbols = simulator.simulation.model.symbols
+        print("Symbol Table:")
+        symbols.sorted { rhs, lhs in
+            lhs.key.lowercased() > rhs.key.lowercased()
+        }
+        .forEach {
+            print("    \($0.key) \($0.value.rawValue)")
+        }
+    }
+
+    func run(stepCount: Int) {
+        prepareOutput()
+
+        // Write initial state
+		writeDot(path: dotFileName(sequence: simulator.stepCount))
+
+        // Run the simulation
+        // -----------------------------------------------------------------------
+        simulator.run(steps: stepCount) { (_, signal) in
+            if !signal.traps.isEmpty {
+                print("Traps: \(signal.traps)")
+            }
+            if !signal.notifications.isEmpty {
+                print("Notifications: \(signal.notifications)")
+            }
+
+            self.writeDot(path: self.dotFileName(sequence: self.simulator.stepCount))
+        }
+
+    }
 
 	func dotFileName(sequence: Int) -> String {
 		let name = String(format: "%06d.dot", sequence)
 		return "\(dotsPath)/\(name)"
 	}
 
-	func willRun(simulator: IterativeSimulator<Sim, CLIDelegate>) {
+	func prepareOutput() {
         // Create output directories
         // -----------------------------------------------------------------------
         let fileManager = FileManager.default
@@ -50,31 +122,10 @@ final class CLIDelegate: SimulatorDelegate {
             fatalError("Unable to create dot files directory '\(dotsPath)'")
         }
 
-		writeDot(path: dotFileName(sequence: simulator.stepCount),
-                 simulator: simulator)
+		writeDot(path: dotFileName(sequence: simulator.stepCount))
 	}
 
-	func didRun(simulator: IterativeSimulator<Sim, CLIDelegate>) {
-		writeDot(path: dotFileName(sequence: simulator.stepCount),
-                 simulator: simulator)
-	}
-
-	func willStep(simulator: IterativeSimulator<Sim, CLIDelegate>) {
-		writeDot(path: dotFileName(sequence: simulator.stepCount),
-                 simulator: simulator)
-	}
-
-    func didStep(simulator: IterativeSimulator<Sim, CLIDelegate>, signal:
-                 Sim.Signal) {
-        if !signal.traps.isEmpty {
-            print("Traps: \(signal.traps)")
-        }
-        if !signal.notifications.isEmpty {
-            print("Notifications: \(signal.notifications)")
-        }
-	}
-
-    func writeDot(path: String, simulator: IterativeSimulator<Sim, CLIDelegate>) {
+    func writeDot(path: String) {
         let writer = DotWriter(path: path,
                                name: "g",
                                type: .directed)
