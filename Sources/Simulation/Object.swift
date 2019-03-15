@@ -2,8 +2,8 @@ import Model
 
 /// Object reference.
 public struct OID: Hashable, CustomStringConvertible {
-    // Prevent doing integer operations with the type and prevent custom creation
-    // of the object.
+    // Prevent doing integer operations with the type and prevent custom
+    // creation of the object.
     let id: Int
 
     init(id: Int) {
@@ -14,26 +14,32 @@ public struct OID: Hashable, CustomStringConvertible {
 }
 
 
-public class Object: CustomStringConvertible {
-    public internal(set) var tags: Set<Symbol>
-    public internal(set) var references: [Symbol:OID]
+/// Representation of an object from the object graph.
+///
+public struct Object: CustomStringConvertible {
+    public typealias Slots = Dictionary<Symbol, OID>.Keys
 
-    public init(tags: Set<Symbol>, references: [Symbol:OID]) {
+    public let oid: OID
+    public let tags: Set<Symbol>
+    public let references: [Symbol:OID]
+
+    public init(oid: OID, tags: Set<Symbol>, references: [Symbol:OID]) {
+        self.oid = oid
         self.tags = tags
         self.references = references
     }
 
-    public var slots: Set<Symbol> {
-        return Set(references.keys)
+    public var slots: Slots {
+        return references.keys
     }
 
     public var description: String {
-        let tagsStr = tags.joined(separator: ", ")
+        let tagsStr = tags.joined(separator: ",")
         let slotsStr = references.map {
             "\($0.key)->\($0.value)"
-        }.joined(separator: ", ")
+        }.joined(separator: ",")
 
-        return "(\(tagsStr)|\(slotsStr))"
+        return "{\(oid): \(tagsStr) [\(slotsStr)]}"
     }
 
 }

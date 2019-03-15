@@ -36,8 +36,7 @@ final class Tool {
         print("    Unary actuators : \(model.unaryActuators.count)")
         print("    Binary actuators: \(model.unaryActuators.count)")
 
-        let container = Container()
-        let simulation = SeproSimulation(model: model, container: container)
+        let simulation = SeproSimulation(model: model)
         simulator = IterativeSimulator(simulation: simulation)
 
         self.outputPath = outputPath
@@ -58,8 +57,7 @@ final class Tool {
                 guard let structure = model.structs[qstruct.structName] else {
                     fatalError("No structure '\(qstruct.structName)'")
                 }
-                // FIXME: too deep access
-                simulator.simulation.container.create(structure: structure)
+                simulator.simulation.create(structure: structure)
             }
         }
     }
@@ -129,35 +127,52 @@ final class Tool {
         let writer = DotWriter(path: path,
                                name: "g",
                                type: .directed)
+        let graph = simulator.simulation.graph
 
         // FIXME: This is accessing internal
-        for oid in simulator.simulation.container.references {
-            let obj = simulator.simulation.container[oid]
-
+        for object in graph.objects {
             // Get raw dot attribute string for every tag of the object
             // FIXME: This is _very_ unsafe, but helps us style our output for
             // the time being
+            let tags = object.state.tags
             var attributeData: [String:[DataItem]] = [:]
-            attributeData["color"] = obj.tags.flatMap {
+            attributeData["color"] = tags.flatMap {
                 simulator.simulation.model.getData(tags:Set(["dot_color", $0]))
             }
-            attributeData["shape"] = obj.tags.flatMap {
+            attributeData["shape"] = tags.flatMap {
                 simulator.simulation.model.getData(tags:Set(["dot_shape", $0]))
             }
-            attributeData["style"] = obj.tags.flatMap {
+            attributeData["style"] = tags.flatMap {
                 simulator.simulation.model.getData(tags:Set(["dot_style", $0]))
             }
-            attributeData["fillcolor"] = obj.tags.flatMap {
+            attributeData["fillcolor"] = tags.flatMap {
                 simulator.simulation.model.getData(tags:Set(["dot_fillcolor", $0]))
             }
-            writeObject(oid: oid, object: obj, attributeData: attributeData, into: writer)
+            writeObject(oid: object.reference, object: object.state, attributeData: attributeData, into: writer)
+
+            // Edges
+            // ----------------
+
+            for (slot, target) in object.references {
+                var edgeAttrs: [String: String] = [:]
+
+                // TODO: Default attributes
+                edgeAttrs["label"] = slot
+                edgeAttrs["fontname"] = "Helvetica"
+                edgeAttrs["fontsize"] = "9"
+
+                writer.writeEdge(from: object.reference.description,
+                                 to: target.description,
+                                 attributes: edgeAttrs)
+            }
         }
 
         writer.close()
     }
 	/// Write object node and it's relationships from slots. Nodes
 	/// are labelled with object ids.
-	func writeObject(oid: OID, object: Object, attributeData: [String:[DataItem]], into writer: DotWriter) {
+	func writeObject(oid: OID, object: SeproObjectGraph.ObjectState,
+                  attributeData: [String:[DataItem]], into writer: DotWriter) {
 		var attrs: [String:String] = [:]
 		let tagsString = object.tags.sorted().joined(separator:",")
 		let label = "\(oid):\(tagsString)"
@@ -189,21 +204,6 @@ final class Tool {
 		attrs["fontsize"] = "11"
         writer.writeNode(oid.description, attributes: attrs)
 
-        // Edges
-        // ----------------
-
-        for (slot, target) in object.references {
-            var edgeAttrs: [String: String] = [:]
-
-            // TODO: Default attributes
-			edgeAttrs["label"] = slot
-			edgeAttrs["fontname"] = "Helvetica"
-			edgeAttrs["fontsize"] = "9"
-
-            writer.writeEdge(from: oid.description,
-                             to: target.description,
-                             attributes: edgeAttrs)
-		}
 	}
 
 }

@@ -13,12 +13,11 @@ public class SeproSimulation: IterativeSimulation {
     public typealias Signal = SeproSignal
 
     public let model: Model
-    // FIXME: [IMPORTANT] Don't make it public!
-    public let container: Container
+    public let graph: SeproObjectGraph
 
-    public init(model: Model, container: Container) {
+    public init(model: Model) {
         self.model = model
-        self.container = container
+        self.graph = SeproObjectGraph()
     }
 
     var stepCount: Int = 0
@@ -36,8 +35,8 @@ public class SeproSimulation: IterativeSimulation {
         // FIXME: Those inner conditions are not 100% right - what if an object
         // has been changed in a way that it has to be considered?
         for (label, actuator) in model.unaryActuators {
-            for oid in container.select(actuator.selector) {
-                if !container.matches(oid, selector: actuator.selector) {
+            for oid in graph.select(actuator.selector) {
+                if !graph.matches(oid, selector: actuator.selector) {
                     // The object has been modified through some of the rules,
                     // we skip it
                     debugPrint("skip")
@@ -55,7 +54,7 @@ public class SeproSimulation: IterativeSimulation {
                 }
 
                 debugPrint("ACT \(label):\(oid)")
-                container.update(oid, with: actuator.transitions)
+                graph.update(oid, with: actuator.transitions)
             }
         }
 
@@ -63,17 +62,17 @@ public class SeproSimulation: IterativeSimulation {
         // ----------------
 
         for (label, actuator) in model.binaryActuators {
-            let leftOnes = container.select(actuator.leftSelector)
-            let rightOnes = container.select(actuator.rightSelector)
+            let leftOnes = graph.select(actuator.leftSelector)
+            let rightOnes = graph.select(actuator.rightSelector)
 
             for left in leftOnes {
                 for right in rightOnes {
-                    if !container.matches(left, selector: actuator.leftSelector) {
+                    if !graph.matches(left, selector: actuator.leftSelector) {
                         // The left has been modified - the rest of the right
                         // side can't be processed
                         break
                     }
-                    if !container.matches(right, selector: actuator.rightSelector) {
+                    if !graph.matches(right, selector: actuator.rightSelector) {
                         // The right has been modified, we skip it
                         continue
                     }
@@ -89,10 +88,10 @@ public class SeproSimulation: IterativeSimulation {
                     }
 
                     debugPrint("REACT \(label): \(left) ON \(right)")
-                    container.update(left,
+                    graph.update(left,
                                      with: actuator.leftTransitions,
                                      other: right)
-                    container.update(right,
+                    graph.update(right,
                                      with: actuator.rightTransitions,
                                      other: left)
                 }
@@ -109,13 +108,38 @@ public class SeproSimulation: IterativeSimulation {
         }
     }
 
+    /// Creates a new structure in the container
+    ///
+    // returns represented object of the structure
+    // represented object for now is the first object
+    @discardableResult
+    public func create(structure: Structure) -> OID {
+        let newObjects: [Symbol:OID]
+
+        newObjects = Dictionary(uniqueKeysWithValues:
+            structure.objects.map {
+                ($0.key, graph.create(tags: $0.value.tags))
+            }
+        )
+
+        for binding in structure.bindings {
+            guard let origin = newObjects[binding.fromName] else {
+                fatalError("Unknown structure origin '\(binding.fromName)'")
+            }
+            guard let target = newObjects[binding.toName] else {
+                fatalError("Unknown structure target '\(binding.toName)'")
+            }
+
+            graph.bind(origin, to: target, slot: binding.slot)
+        }
+        // TODO: represented object for now is the first object
+        // FIXME: struct must be non-empty
+        return Array(newObjects.values)[0]
+    }
+
+
 	public func debugDump() {
-		debugPrint(">>> SIMULATOR DUMP START\n")
-		for key in container.objects.keys {
-            let obj = container[key]
-			debugPrint("    \(obj)")
-		}
-		debugPrint("<<< END OF DUMP\n")
+        graph.debugDump()
 	}
 
 }

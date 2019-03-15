@@ -1,70 +1,65 @@
 import Model
+import ObjectGraph
 
-/// Simple implementation of object container.
+/// Structure holding an object graph with unique identifiers of the objects.
 /// 
 /// Object container is guaranteed to maintain internal consistency – there
 /// should be no invalid references.
 ///
-public class Container {
-    var objects:[OID:Object]
-    var counter: Int
-
-    public var references: AnyCollection<OID> {
-        return AnyCollection(objects.keys)
+public class SeproObjectGraph {
+    public struct ObjectState {
+        public let tags: Set<Symbol>
     }
 
+    public typealias Graph = ObjectGraph<OID, ObjectState, Symbol>
+    public typealias Objects = Graph.Objects
+    public typealias References = Graph.References
+    public typealias Object = Graph.Object
+
+    var graph: Graph
+    var counter: Int
+
     public init() {
-        objects = [OID:Object]()
+        graph = ObjectGraph()
         counter = 1
+    }
+
+    /// Get a list of all object references in the object graph.
+    // FIXME: All places labelled with #graph should be reconsidered. They are
+    // just aliases for the underlying graph structure.
+    // TODO: #graph
+    public var references: References {
+        return graph.references
+    }
+
+    // TODO: #graph
+    public var objects: Objects {
+        return graph.objects
     }
 
     /// Creates a new object in the container
     ///
+    // TODO: Does this has to be here? Not in Sim?
+    // TODO: #simulation
     @discardableResult
-    public func create(prototype: Prototype) -> OID {
+    public func create(tags: Set<Symbol>) -> OID {
         let oid = OID(id: counter)
 
         counter += 1
-
-        objects[oid] = Object(tags: prototype.tags, references: [:])
+        graph.insert(oid, state: ObjectState(tags: tags))
 
         return oid
     }
 
-    /// Creates a new structure in the container
-    ///
-    // Note: This should belong somewhere else, this is just convenience for
-    // complexity.
-    // returns represented object of the structure
-    // represented object for now is the first object
-    @discardableResult
-    public func create(structure: Structure) -> OID {
-        let newObjects: [Symbol:OID]
-
-        newObjects = Dictionary(uniqueKeysWithValues:
-            structure.objects.map {
-                ($0.key, create(prototype: $0.value))
-            }
-        )
-
-        for binding in structure.bindings {
-            guard let origin = newObjects[binding.fromName] else {
-                fatalError("Unknown structure origin '\(binding.fromName)'")
-            }
-            guard let target = newObjects[binding.toName] else {
-                fatalError("Unknown structure target '\(binding.toName)'")
-            }
-            guard let object = objects[origin] else {
-                fatalError("Invalid object reference \(origin)")
-            }
-
-            object.references[binding.slot] = target
-        }
-        // TODO: represented object for now is the first object
-        // FIXME: struct must be non-empty
-        return Array(newObjects.values)[0]
+    // TODO: #graph
+    public func bind(_ origin: OID, to target: OID, slot: Symbol) {
+        graph.connect(origin, to: target, at: slot)
     }
 
+    // TODO: #graph
+    public func state(_ oid: OID) -> ObjectState? {
+        return graph[oid]
+    }
 
     /// Selects objects from the container that match patterns of `selector`.
     ///
@@ -75,12 +70,12 @@ public class Container {
     ///
     public func select(_ selector: Selector) -> AnyCollection<OID> {
         let result: AnyCollection<OID>
-
         switch selector {
         case .all:
-            result = AnyCollection(objects.keys.lazy)
+            result = AnyCollection(graph.references.lazy)
         case .match(let patterns):
-            let filtered = objects.keys.lazy.filter {
+            // TODO: LAZY
+            let filtered = graph.references.filter {
                 self.matches($0, patterns: patterns)
             }
             result = AnyCollection(filtered)
@@ -102,7 +97,6 @@ public class Container {
 
     }
 
-    /// FIXME: 
     func matches(_ oid: OID, patterns: [SubjectMode:SelectorPattern]) -> Bool {
         let flag = patterns.allSatisfy { item in
             effectiveSubject(oid, mode: item.key).map {
@@ -117,12 +111,17 @@ public class Container {
     /// - Precondition: Object reference must be valid within the container.
     ///
     func matches(_ oid: OID, pattern: SelectorPattern) -> Bool {
-        guard let object = objects[oid] else {
+        guard let state = graph[oid] else {
             preconditionFailure("Invalid object reference \(oid)")
         }
 
-        return pattern.tags.matches(object.tags)
-                && pattern.slots.matches(object.slots)
+        return pattern.tags.matches(state.tags)
+                && pattern.slots.matches(slots(oid))
+    }
+
+    /// Get a set of occupied slots of object `oid`.
+    func slots(_ oid: OID) -> Set<Symbol> {
+        return Set(graph.slots(oid))
     }
 
     /// Returns effective subject for given OID. If the `mode` is `direct` then
@@ -133,14 +132,13 @@ public class Container {
     ///
 
     func effectiveSubject(_ oid: OID, mode: SubjectMode) -> OID? {
-        guard let object = objects[oid] else {
-            preconditionFailure("Invalid object reference \(oid)")
-        }
         let effective: OID?
 
         switch mode {
-        case .direct: effective = oid
-        case .indirect(let slot): effective = object.references[slot]
+        case .direct:
+            effective = oid
+        case .indirect(let slot):
+            effective = graph.target(oid, at: slot)
         }
 
         return effective
@@ -160,19 +158,17 @@ public class Container {
 
     /// Applies unary transition to `effective` subject with original subject
     /// `subject`.
-    func update(_ effectiveOid: OID,
+    func update(_ effective: OID,
                 with transition: UnaryTransition,
-                subject subjectOid: OID) {
-        // TODO: Warning: This was `var`
-        guard let subject = objects[subjectOid] else {
-            preconditionFailure("Invalid object reference \(subjectOid)")
-        }
-        guard let effective = objects[effectiveOid] else {
-            preconditionFailure("Invalid object reference \(effectiveOid)")
+                subject: OID) {
+        guard let effectiveState = graph[effective] else {
+            preconditionFailure("Invalid object reference \(effective)")
         }
 
-        effective.tags.formUnion(transition.tags.presentSymbols)
-        effective.tags.subtract(transition.tags.absentSymbols)
+        let newTags = effectiveState.tags.union(transition.tags.presentSymbols)
+                            .subtracting(transition.tags.absentSymbols)
+
+        graph.updateState(ObjectState(tags: newTags), at: effective)
 
         for (subjectSlot, targetType) in transition.bindings {
             let target: OID?
@@ -181,22 +177,22 @@ public class Container {
             case .none:
                 target = nil
             case .subject:
-                target = subjectOid
+                target = subject
             case .direct(let symbol):
-                target = subject.references[symbol]
+                target = graph.target(subject, at: symbol)
             case .indirect(let indirect, let symbol):
-
-                target = subject.references[indirect].flatMap {
-                                objects[$0].flatMap {
-                                    $0.references[symbol]
-                                }
-                            }
+                target = graph.target(subject, at: indirect).flatMap {
+                    graph.target($0, at: symbol)
+                }
             }
 
-            effective.references[subjectSlot] = target
+            if let target = target {
+                graph.connect(effective, to: target, at: subjectSlot)
+            }
+            else {
+                graph.disconnect(effective, at: subjectSlot)
+            }
         }
-
-        objects[effectiveOid] = effective
     }
 
 
@@ -219,18 +215,16 @@ public class Container {
     /// Update an object within a binary interaction using `transition` and
     /// other interating object as `other`.
     ///
-    func update(_ effectiveOid: OID,
+    func update(_ effective: OID,
                 with transition: BinaryTransition,
-                other otherOid: OID) {
-        guard let effective = objects[effectiveOid] else {
-            preconditionFailure("Invalid object reference \(effectiveOid)")
-        }
-        guard let other = objects[otherOid] else {
-            preconditionFailure("Invalid object reference \(otherOid)")
+                other: OID) {
+        guard let effectiveState = graph[effective] else {
+            preconditionFailure("Invalid object reference \(effective)")
         }
 
-        effective.tags.formUnion(transition.tags.presentSymbols)
-        effective.tags.subtract(transition.tags.absentSymbols)
+        let newTags = effectiveState.tags.union(transition.tags.presentSymbols)
+                            .subtracting(transition.tags.absentSymbols)
+        graph.updateState(ObjectState(tags: newTags), at: effective)
 
         for (subjectSlot, targetMode) in transition.bindings {
             let target: OID?
@@ -239,24 +233,29 @@ public class Container {
             case .none:
                 target = nil
             case .other:
-                target = otherOid
+                target = other
             case .inOther(let symbol):
-                target = other.references[symbol]
+                target = graph.target(other, at: symbol)
             }
 
-            effective.references[subjectSlot] = target
+            if let target = target {
+                graph.connect(effective, to: target, at: subjectSlot)
+            }
+            else {
+                graph.disconnect(effective, at: subjectSlot)
+            }
         }
-
-        objects[effectiveOid] = effective
-    }
-
-    public subscript(oid: OID) -> Object {
-        // index is expeced to be valid
-        // FIXME: Should invalid oid be an error?
-        return objects[oid]!
     }
 
     public func slots(object:OID) -> Set<Symbol> {
-        return objects[object]!.slots
+        return Set(graph.slots(object))
     }
+
+	public func debugDump() {
+		debugPrint(">>> OBJECT GRAPH DUMP START\n")
+		for object in graph.objects {
+			debugPrint("    [\(object.reference)] \(object.state) [\(slots(object.reference))]")
+		}
+		debugPrint("<<< END OF DUMP\n")
+	}
 }

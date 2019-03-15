@@ -354,6 +354,7 @@ public struct QuantifiedStruct {
 }
 
 public struct World {
+    // FIMXE: Rename to structures
     public let structs: [QuantifiedStruct]
 
     public init(structs: [QuantifiedStruct]) {
@@ -402,6 +403,7 @@ public class Model: CustomStringConvertible {
     public var symbols: [Symbol:SymbolType] = [:]
     public var unaryActuators: [String:UnaryActuator] = [:]
     public var binaryActuators: [String:BinaryActuator] = [:]
+    // FIXME: Rename to structure
     public var structs: [String:Structure] = [:]
     public var worlds: [String:World] = [:]
 
