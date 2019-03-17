@@ -44,22 +44,7 @@ final class Tool {
 	}
 
     func initializeWorld(_ name: String) {
-        guard let world = model.worlds[name] else {
-            fatalError("Unknown world '\(name)'")
-        }
-
-        print("Initializing simulation with world '\(name)'...")
-
-        // Initialize the structures
-        // -----------------------------------------------------------------------
-        for qstruct in world.structs {
-            for _ in 0..<qstruct.count {
-                guard let structure = model.structs[qstruct.structName] else {
-                    fatalError("No structure '\(qstruct.structName)'")
-                }
-                simulator.simulation.create(structure: structure)
-            }
-        }
+        simulator.simulation.createWorld(name)
     }
 
     func printSymbolTable() {
@@ -127,9 +112,8 @@ final class Tool {
         let writer = DotWriter(path: path,
                                name: "g",
                                type: .directed)
-        let graph = simulator.simulation.graph
+        let graph = simulator.simulation.state.graph
 
-        // FIXME: This is accessing internal
         for object in graph.objects {
             // Get raw dot attribute string for every tag of the object
             // FIXME: This is _very_ unsafe, but helps us style our output for
@@ -171,7 +155,7 @@ final class Tool {
     }
 	/// Write object node and it's relationships from slots. Nodes
 	/// are labelled with object ids.
-	func writeObject(oid: OID, object: SeproObjectGraph.ObjectState,
+	func writeObject(oid: OID, object: SimulationState.ObjectState,
                   attributeData: [String:[DataItem]], into writer: DotWriter) {
 		var attrs: [String:String] = [:]
 		let tagsString = object.tags.sorted().joined(separator:",")

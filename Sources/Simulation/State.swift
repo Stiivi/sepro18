@@ -1,19 +1,19 @@
 import Model
 import ObjectGraph
 
-/// Structure holding an object graph with unique identifiers of the objects.
+/// Structure holding simulation state.
 /// 
 /// Object container is guaranteed to maintain internal consistency – there
 /// should be no invalid references.
 ///
-public class SeproObjectGraph {
+public class SimulationState {
     public struct ObjectState {
         public let tags: Set<Symbol>
     }
 
     public typealias Graph = ObjectGraph<OID, ObjectState, Symbol>
 
-    var graph: Graph
+    public internal(set) var graph: Graph
     var counter: Int
 
     public init() {
@@ -21,18 +21,8 @@ public class SeproObjectGraph {
         counter = 1
     }
 
-    /// Get a list of all object references in the object graph.
     // FIXME: All places labelled with #graph should be reconsidered. They are
     // just aliases for the underlying graph structure.
-    // TODO: #graph
-    public var references: Graph.References {
-        return graph.references
-    }
-
-    // TODO: #graph
-    public var objects: Graph.Objects {
-        return graph.objects
-    }
 
     /// Creates a new object in the container
     ///
@@ -49,13 +39,8 @@ public class SeproObjectGraph {
     }
 
     // TODO: #graph
-    public func bind(_ origin: OID, to target: OID, slot: Symbol) {
+    public func bind(_ origin: OID, to target: OID, at slot: Symbol) {
         graph.connect(origin, to: target, at: slot)
-    }
-
-    // TODO: #graph
-    public func state(_ oid: OID) -> ObjectState? {
-        return graph[oid]
     }
 
     /// Selects objects from the container that match patterns of `selector`.
@@ -80,7 +65,6 @@ public class SeproObjectGraph {
 
         return result
     }
-
 
     /// Test whether an object `oid` matches `selector`.
     ///
@@ -113,12 +97,7 @@ public class SeproObjectGraph {
         }
 
         return pattern.tags.matches(state.tags)
-                && pattern.slots.matches(slots(oid))
-    }
-
-    /// Get a set of occupied slots of object `oid`.
-    func slots(_ oid: OID) -> Set<Symbol> {
-        return Set(graph.slots(oid))
+                && pattern.slots.matches(Set(graph.slots(oid)))
     }
 
     /// Returns effective subject for given OID. If the `mode` is `direct` then
@@ -191,7 +170,6 @@ public class SeproObjectGraph {
                 }
             }
 
-        // TODO: #update
             if let target = target {
                 transforms.append {
                     $0.connect(effective, to: target, at: subjectSlot)
@@ -241,7 +219,6 @@ public class SeproObjectGraph {
 
         let newTags = effectiveState.tags.union(transition.tags.presentSymbols)
                             .subtracting(transition.tags.absentSymbols)
-        // TODO: #update
         transforms.append {
             $0.updateState(ObjectState(tags: newTags), of: effective)
         }
@@ -258,7 +235,6 @@ public class SeproObjectGraph {
                 target = graph.target(other, at: symbol)
             }
 
-        // TODO: #update
             if let target = target {
                 transforms.append {
                     $0.connect(effective, to: target, at: subjectSlot)
@@ -273,14 +249,10 @@ public class SeproObjectGraph {
         return transforms
     }
 
-    public func slots(object:OID) -> Set<Symbol> {
-        return Set(graph.slots(object))
-    }
-
 	public func debugDump() {
 		debugPrint(">>> OBJECT GRAPH DUMP START\n")
 		for object in graph.objects {
-			debugPrint("    [\(object.reference)] \(object.state) [\(slots(object.reference))]")
+			debugPrint("    [\(object.reference)] \(object.state) [\(graph.slots(object.reference))]")
 		}
 		debugPrint("<<< END OF DUMP\n")
 	}

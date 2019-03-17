@@ -14,11 +14,11 @@ public class SeproSimulation: IterativeSimulation {
     public typealias Signal = SeproSignal
 
     public let model: Model
-    public let graph: SeproObjectGraph
+    public let state: SimulationState
 
     public init(model: Model) {
         self.model = model
-        self.graph = SeproObjectGraph()
+        self.state = SimulationState()
     }
 
     var stepCount: Int = 0
@@ -40,8 +40,8 @@ public class SeproSimulation: IterativeSimulation {
         // FIXME: Those inner conditions are not 100% right - what if an object
         // has been changed in a way that it has to be considered?
         for (label, actuator) in model.unaryActuators {
-            for oid in graph.select(actuator.selector) {
-                if !graph.matches(oid, selector: actuator.selector) {
+            for oid in state.select(actuator.selector) {
+                if !state.matches(oid, selector: actuator.selector) {
                     // The object has been modified through some of the rules,
                     // we skip it
                     debugPrint("skip")
@@ -59,9 +59,9 @@ public class SeproSimulation: IterativeSimulation {
                 }
 
                 debugPrint("ACT \(label):\(oid)")
-                let transforms = graph.update(oid, with: actuator.transitions)
+                let transforms = state.update(oid, with: actuator.transitions)
                 debugPrint("  - \(transforms.count) transformations")
-                transforms.apply(&graph.graph)
+                transforms.apply(&state.graph)
             }
         }
 
@@ -69,17 +69,17 @@ public class SeproSimulation: IterativeSimulation {
         // ----------------
 
         for (label, actuator) in model.binaryActuators {
-            let leftOnes = graph.select(actuator.leftSelector)
-            let rightOnes = graph.select(actuator.rightSelector)
+            let leftOnes = state.select(actuator.leftSelector)
+            let rightOnes = state.select(actuator.rightSelector)
 
             for left in leftOnes {
                 for right in rightOnes {
-                    if !graph.matches(left, selector: actuator.leftSelector) {
+                    if !state.matches(left, selector: actuator.leftSelector) {
                         // The left has been modified - the rest of the right
                         // side can't be processed
                         break
                     }
-                    if !graph.matches(right, selector: actuator.rightSelector) {
+                    if !state.matches(right, selector: actuator.rightSelector) {
                         // The right has been modified, we skip it
                         continue
                     }
@@ -95,15 +95,15 @@ public class SeproSimulation: IterativeSimulation {
                     }
 
                     debugPrint("REACT \(label): \(left) ON \(right)")
-                    var transforms = SeproObjectGraph.Graph.TransformList()
-                    transforms += graph.update(left,
+                    var transforms = SimulationState.Graph.TransformList()
+                    transforms += state.update(left,
                                                with: actuator.leftTransitions,
                                                other: right)
-                    transforms += graph.update(right,
+                    transforms += state.update(right,
                                                with: actuator.rightTransitions,
                                                other: left)
                     debugPrint("  - \(transforms.count) transformations")
-                    transforms.apply(&graph.graph)
+                    transforms.apply(&state.graph)
                 }
             }
         }
@@ -119,6 +119,24 @@ public class SeproSimulation: IterativeSimulation {
     }
     // swiftlint:enable function_body_length cyclomatic_complexity
 
+    /// Create structures of a world `name`.
+    ///
+    public func createWorld(_ name: String) {
+        guard let world = model.worlds[name] else {
+            preconditionFailure("Unknown world '\(name)'")
+        }
+
+        // Initialize the structures
+        for qstruct in world.structures {
+            guard let structure = model.structures[qstruct.structName] else {
+                fatalError("No structure '\(qstruct.structName)'")
+            }
+            for _ in 0..<qstruct.count {
+                create(structure: structure)
+            }
+        }
+    }
+
     /// Creates a new structure in the container
     ///
     // returns represented object of the structure
@@ -129,7 +147,7 @@ public class SeproSimulation: IterativeSimulation {
 
         newObjects = Dictionary(uniqueKeysWithValues:
             structure.objects.map {
-                ($0.key, graph.create(tags: $0.value.tags))
+                ($0.key, state.create(tags: $0.value.tags))
             }
         )
 
@@ -141,16 +159,15 @@ public class SeproSimulation: IterativeSimulation {
                 fatalError("Unknown structure target '\(binding.toName)'")
             }
 
-            graph.bind(origin, to: target, slot: binding.slot)
+            state.bind(origin, to: target, at: binding.slot)
         }
         // TODO: represented object for now is the first object
         // FIXME: struct must be non-empty
         return Array(newObjects.values)[0]
     }
 
-
 	public func debugDump() {
-        graph.debugDump()
+        state.debugDump()
 	}
 
 }

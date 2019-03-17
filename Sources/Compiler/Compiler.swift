@@ -464,7 +464,7 @@ public final class Compiler {
         }
         anonStructCounter += freeObjects.count
 
-        let world = World(structs: namedStructs + constructedStructs)
+        let world = World(structures: namedStructs + constructedStructs)
         model.insertWorld(world, name: name)
     }
     func compileStruct(name: String, items: [ASTStructItem]) {
