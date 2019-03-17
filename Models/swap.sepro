@@ -1,0 +1,29 @@
+# Example of how to swap two bindings.
+#
+# Note: this will not work with Sepro18 v0.1
+#
+
+DEF TAG root
+DEF TAG a
+DEF TAG b
+DEF SLOT left
+DEF SLOT right
+
+ACT swap
+    WHERE (root !fixed)
+    IN this
+        BIND left TO right
+        BIND right TO left
+        SET fixed
+
+STRUCT a_thing
+    OBJ root (root)
+    OBJ a (a)
+    OBJ b (b)
+    BIND root.left TO a
+    BIND root.right TO b
+
+world main
+    1 a_thing
+
+
