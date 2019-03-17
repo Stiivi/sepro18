@@ -1,5 +1,6 @@
 import Simulator
 import Model
+import ObjectGraph
 
 // TODO: Unused for now, we just need a signal type
 public struct SeproSignal {
@@ -22,6 +23,10 @@ public class SeproSimulation: IterativeSimulation {
 
     var stepCount: Int = 0
 
+    // FIXME: Reconsider these violations. For now, we want to keep the whole
+    // `step()` method as it is.
+    //
+    // swiftlint:disable function_body_length cyclomatic_complexity
     public func step() -> StepResult<SeproSignal> {
         var notifications = Set<Symbol>()
         var traps = Set<Symbol>()
@@ -54,7 +59,9 @@ public class SeproSimulation: IterativeSimulation {
                 }
 
                 debugPrint("ACT \(label):\(oid)")
-                graph.update(oid, with: actuator.transitions)
+                let transforms = graph.update(oid, with: actuator.transitions)
+                debugPrint("  - \(transforms.count) transformations")
+                transforms.apply(&graph.graph)
             }
         }
 
@@ -88,12 +95,15 @@ public class SeproSimulation: IterativeSimulation {
                     }
 
                     debugPrint("REACT \(label): \(left) ON \(right)")
-                    graph.update(left,
-                                     with: actuator.leftTransitions,
-                                     other: right)
-                    graph.update(right,
-                                     with: actuator.rightTransitions,
-                                     other: left)
+                    var transforms = SeproObjectGraph.Graph.TransformList()
+                    transforms += graph.update(left,
+                                               with: actuator.leftTransitions,
+                                               other: right)
+                    transforms += graph.update(right,
+                                               with: actuator.rightTransitions,
+                                               other: left)
+                    debugPrint("  - \(transforms.count) transformations")
+                    transforms.apply(&graph.graph)
                 }
             }
         }
@@ -107,6 +117,7 @@ public class SeproSimulation: IterativeSimulation {
                                              notifications: notifications))
         }
     }
+    // swiftlint:enable function_body_length cyclomatic_complexity
 
     /// Creates a new structure in the container
     ///

@@ -12,9 +12,6 @@ public class SeproObjectGraph {
     }
 
     public typealias Graph = ObjectGraph<OID, ObjectState, Symbol>
-    public typealias Objects = Graph.Objects
-    public typealias References = Graph.References
-    public typealias Object = Graph.Object
 
     var graph: Graph
     var counter: Int
@@ -28,12 +25,12 @@ public class SeproObjectGraph {
     // FIXME: All places labelled with #graph should be reconsidered. They are
     // just aliases for the underlying graph structure.
     // TODO: #graph
-    public var references: References {
+    public var references: Graph.References {
         return graph.references
     }
 
     // TODO: #graph
-    public var objects: Objects {
+    public var objects: Graph.Objects {
         return graph.objects
     }
 
@@ -146,29 +143,37 @@ public class SeproObjectGraph {
 
     /// Applies set of transitions to object `oid`.
     ///
-    func update(_ oid: OID, with transitions: [SubjectMode:UnaryTransition]) {
+    func update(_ oid: OID, with transitions: [SubjectMode:UnaryTransition]) -> Graph.TransformList {
+        var transforms = Graph.TransformList()
+
         for transition in transitions {
             if let effective = effectiveSubject(oid, mode: transition.key) {
-                update(effective,
-                       with: transition.value,
-                       subject: oid)
+                transforms += update(effective,
+                                     with: transition.value,
+                                     subject: oid)
             }
         }
+
+        return transforms
     }
 
     /// Applies unary transition to `effective` subject with original subject
     /// `subject`.
     func update(_ effective: OID,
                 with transition: UnaryTransition,
-                subject: OID) {
+                subject: OID) -> Graph.TransformList {
         guard let effectiveState = graph[effective] else {
             preconditionFailure("Invalid object reference \(effective)")
         }
 
+        var transforms = Graph.TransformList()
+
         let newTags = effectiveState.tags.union(transition.tags.presentSymbols)
                             .subtracting(transition.tags.absentSymbols)
 
-        graph.updateState(ObjectState(tags: newTags), at: effective)
+        transforms.append {
+            $0.updateState(ObjectState(tags: newTags), of: effective)
+        }
 
         for (subjectSlot, targetType) in transition.bindings {
             let target: OID?
@@ -186,13 +191,20 @@ public class SeproObjectGraph {
                 }
             }
 
+        // TODO: #update
             if let target = target {
-                graph.connect(effective, to: target, at: subjectSlot)
+                transforms.append {
+                    $0.connect(effective, to: target, at: subjectSlot)
+                }
             }
             else {
-                graph.disconnect(effective, at: subjectSlot)
+                transforms.append {
+                    $0.disconnect(effective, at: subjectSlot)
+                }
             }
         }
+
+        return transforms
     }
 
 
@@ -201,15 +213,18 @@ public class SeproObjectGraph {
     ///
     func update(_ oid: OID,
                 with transitions: [SubjectMode:BinaryTransition],
-                other: OID) {
+                other: OID) -> Graph.TransformList {
+
+        var transforms = Graph.TransformList()
 
         for (subjectMode, transition) in transitions {
             if let effective = effectiveSubject(oid, mode: subjectMode) {
-                update(effective,
-                       with: transition,
-                       other: other)
+                transforms += update(effective,
+                                     with: transition,
+                                     other: other)
             }
         }
+        return transforms
     }
 
     /// Update an object within a binary interaction using `transition` and
@@ -217,14 +232,19 @@ public class SeproObjectGraph {
     ///
     func update(_ effective: OID,
                 with transition: BinaryTransition,
-                other: OID) {
+                other: OID) -> Graph.TransformList {
         guard let effectiveState = graph[effective] else {
             preconditionFailure("Invalid object reference \(effective)")
         }
 
+        var transforms = Graph.TransformList()
+
         let newTags = effectiveState.tags.union(transition.tags.presentSymbols)
                             .subtracting(transition.tags.absentSymbols)
-        graph.updateState(ObjectState(tags: newTags), at: effective)
+        // TODO: #update
+        transforms.append {
+            $0.updateState(ObjectState(tags: newTags), of: effective)
+        }
 
         for (subjectSlot, targetMode) in transition.bindings {
             let target: OID?
@@ -238,13 +258,19 @@ public class SeproObjectGraph {
                 target = graph.target(other, at: symbol)
             }
 
+        // TODO: #update
             if let target = target {
-                graph.connect(effective, to: target, at: subjectSlot)
+                transforms.append {
+                    $0.connect(effective, to: target, at: subjectSlot)
+                }
             }
             else {
-                graph.disconnect(effective, at: subjectSlot)
+                transforms.append {
+                    $0.disconnect(effective, at: subjectSlot)
+                }
             }
         }
+        return transforms
     }
 
     public func slots(object:OID) -> Set<Symbol> {
