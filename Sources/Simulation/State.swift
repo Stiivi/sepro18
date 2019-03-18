@@ -1,6 +1,19 @@
 import Model
 import ObjectGraph
 
+/// Object reference.
+public struct OID: Hashable, CustomStringConvertible {
+    // Prevent doing integer operations with the type and prevent custom
+    // creation of the object.
+    let id: Int
+
+    init(id: Int) {
+        self.id = id
+    }
+
+    public var description: String { return String(id) }
+}
+
 /// Structure holding simulation state.
 /// 
 /// Object container is guaranteed to maintain internal consistency – there
