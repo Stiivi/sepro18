@@ -15,7 +15,6 @@ let package = Package(
             targets: ["Simulation", "Compiler"])
     ],
     dependencies: [
-        .package(url: "https://github.com/Stiivi/ParserCombinator.git", from: "0.1.6"),
         .package(url: "https://github.com/Stiivi/DotWriter.git", from: "0.1.0"),
         .package(url: "https://github.com/AgentFarms/ObjectGraph.git", from: "0.1.2")
     ],
@@ -27,11 +26,11 @@ let package = Package(
             name: "Simulator",
             dependencies: []),
         .target(
+            name: "Compiler",
+            dependencies: []),
+        .target(
             name: "Simulation",
             dependencies: ["Model", "Simulator", "ObjectGraph"]),
-        .target(
-            name: "Compiler",
-            dependencies: ["ParserCombinator", "Model"]),
         .target(
             name: "Tool",
             dependencies: ["Compiler", "Simulation", "DotWriter"]),

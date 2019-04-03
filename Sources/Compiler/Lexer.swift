@@ -13,7 +13,6 @@
 /// Parser Token
 
 import Foundation
-import protocol ParserCombinator.EmptyCheckable
 
 public enum TokenType: Equatable, CustomStringConvertible {
     case empty
@@ -106,8 +105,8 @@ public class Lexer {
     var currentChar: UnicodeScalar?
     var text: String
 
-    public var position: TextPosition
-    public var currentToken: Token?
+    public internal (set) var position: TextPosition
+    public internal (set) var currentToken: Token?
 
     static let whitespaces = CharacterSet.whitespaces | CharacterSet.newlines
     static let decimalDigits = CharacterSet.decimalDigits
@@ -308,6 +307,7 @@ public class Lexer {
     ///
     /// - Returns: currently parsed SourceToken
     ///
+    @discardableResult
     public func nextToken() -> TokenType {
         let result: TokenType
 
@@ -367,8 +367,9 @@ public class Lexer {
     ///
     func next() -> Token {
         let type = nextToken()
+        currentToken = Token(type, text: text, position: position)
 
-        return Token(type, text: text, position: position)
+        return currentToken!
     }
 
 }

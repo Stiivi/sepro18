@@ -74,8 +74,8 @@ public final class Compiler {
     ///
     func compile(modelObject item: ASTModelObject) {
         switch item {
-        case let .define(typeName, symbol):
-            compileDefine(typeName:typeName, symbol:symbol)
+        case let .define(type, symbol):
+            compileDefine(type:type, symbol:symbol)
 
         case let .unaryActuator(name, selector, transitions, signals):
             compileUnaryActuator(name: name,
@@ -99,7 +99,7 @@ public final class Compiler {
         }
     }
 
-    func compileDefine(typeName: String, symbol: String) {
+    func compileDefine(type: SymbolType, symbol: String) {
         // FIXME: Looks like we can skip this one, as we did this in the
         // TODO: Process documentation here
         // Phase I.

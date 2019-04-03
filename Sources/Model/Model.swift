@@ -5,7 +5,7 @@ public typealias Symbol = String
 
 /// Type of a symbol within a model.
 ///
-public enum SymbolType: String {
+public enum SymbolType: String, CaseIterable {
     /// Symbol represents a slot
     case slot
     /// Symbol represents a tag
