@@ -7,13 +7,11 @@ See [Introduction slides](https://www.slideshare.net/Stiivi/sepro-introduction)
 
 # Requirements
 
-- [Swift](https://swift.org/download/) 4.2
+- [Swift](https://swift.org/download/) 5.0
 
 Uses the following packages (no need to download, included in the Package
 manifest):
 
-- [ParserCombinator](https://github.com/stiivi/ParserCombinator) - for model
-    language parsing.
 - [DotWriter](https://github.com/stiivi/DotWriter) - for generating
     [Graphviz](https://www.graphviz.org) output.
 
@@ -31,6 +29,15 @@ generates output into `./out/dots`.
 
 ```
 swift run Models/linker.sepro 10
+```
+
+Other options for the command-line tool:
+
+```
+  --help            List options
+  --dump-symbols    Dump symbol table.
+  -o DIR            Output directory. Default: ./out
+  -w WORLD          World name to initialize simlation. Default: main
 ```
 
 # Language Reference
