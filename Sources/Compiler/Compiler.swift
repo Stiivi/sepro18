@@ -37,6 +37,7 @@ public final class Compiler {
 
             // FIXME: Handle this error more gracefully.
             // TODO: ... or rather have a nice error handling for the compiler
+            // #good-first
             fatalError("Compiler error: \(parser.sourceLocation) around \(context): \(error)")
         }
 

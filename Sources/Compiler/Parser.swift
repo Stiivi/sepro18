@@ -1,6 +1,7 @@
 // FIXME: Model import should not be necessary for the parser
 import Model
 
+// TODO: Add human readable descriptions for the errors. #good-first
 public enum CompilerError: Error {
     case unexpectedTokenType(String)
     case symbolExpected(String)
@@ -14,13 +15,20 @@ public enum CompilerError: Error {
     case badSymbolType(String)
 }
 
+/// Parser for Sepro source code. Takes a textual input (a string) and
+/// generates AST nodes.
+///
 public final class Parser {
     var lexer: Lexer
 
+    /// Create a parser for model source `source`.
+    ///
     convenience init(source: String) {
         self.init(lexer: Lexer(source))
     }
 
+    /// Create a parser from already initialized lexer.
+    ///
     init(lexer: Lexer) {
         self.lexer = lexer
 
@@ -34,6 +42,9 @@ public final class Parser {
     var sourceLocation: SourceLocation { return lexer.location }
     var currentToken: Token? { return lexer.currentToken }
 
+    /// Parses model and returs list of model objects. Expects end of source
+    /// stream after last model object.
+    ///
     func parseModel() throws -> [ASTModelObject] {
         let objects = try many(modelObject)
 
@@ -46,6 +57,10 @@ public final class Parser {
     // Basic parser methods
     // -----------------------------------------------------------------
 
+    /// Accept a token that satisfies condition `satisfy`. If the token
+    /// satisfies the condition, then lexer is advanced and the token is
+    /// returned. Otherwise `nil` is returned.
+    ///
     @discardableResult
     func accept(_ satisfy: (Token) -> Bool) -> Token? {
         guard let token = lexer.currentToken else {
@@ -61,6 +76,9 @@ public final class Parser {
         }
     }
 
+    /// Accepts zero or multiple rules `fetch` and returns a list of accepted
+    /// objects. Returns an empty list when no objects are parsed.
+    ///
     func many<T>(_ fetch: () throws -> T?) throws -> [T] {
         var list: [T] = []
 
@@ -74,17 +92,19 @@ public final class Parser {
     // Atom Helpers
     // -----------------------------------------------------------------
 
+    /// Accepts a symbol token.
+    ///
     func symbol() -> String? {
         return accept { $0.type == .symbol }.map { $0.text }
     }
 
-    /// Accept an integer.
+    /// Accept an integer token.
     func integer() -> Int? {
         // TODO: We assume here that the integer literals are Int convertible
         return accept { $0.type == .intLiteral }.map { Int($0.text)! }
     }
 
-    /// Accept a string.
+    /// Accept a string token.
     ///
     func string() -> String? {
         return accept { $0.type == .stringLiteral }.map { $0.text }
@@ -136,11 +156,19 @@ public final class Parser {
         }
         return symbol
     }
+    /// Expects a keyword. If the keyword is not present then `keywordExpected`
+    /// exception is raised with the expected keyword as an argument.
+    ///
     func expect(keyword: String) throws {
         guard self.keyword(keyword) else {
             throw CompilerError.keywordExpected(keyword)
         }
     }
+
+    /// Expects a tag list. If the tag list is not present then
+    /// `tagListExpected` exception is raised with the expected tag list label
+    /// as an argument.
+    ///
     func expect(tagList label: String) throws -> [String] {
         guard let list = try tagList() else {
             throw CompilerError.tagListExpected(label)
@@ -539,5 +567,4 @@ public final class Parser {
             return ASTQualifiedSymbol(qualifier: nil, symbol: left)
         }
     }
-
 }
