@@ -280,7 +280,6 @@ public final class Compiler {
                                   uniquingKeysWith: { (_, last) in last })
 
         return BinaryTransition(tags: mask, bindings: bindings)
-
     }
 
     func compileBinaryActuator(name: String,
@@ -294,7 +293,7 @@ public final class Compiler {
         let compiledSignal = compileSignals(signals: signals)
 
         let leftTransList = transitions.filter {
-            $0.subject.side == "LEFT"
+            $0.subject.side == .left
         }.map {
             ($0.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
              compileBinaryTransition($0))
@@ -303,7 +302,7 @@ public final class Compiler {
                                    uniquingKeysWith: { (_, last) in last })
 
         let rightTransList = transitions.filter {
-            $0.subject.side == "RIGHT"
+            $0.subject.side == .right
         }.map {
             ($0.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
              compileBinaryTransition($0))

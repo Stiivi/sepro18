@@ -194,8 +194,14 @@ struct ASTQualifiedSymbol: ASTNode {
 }
 
 struct ASTSubject: ASTNode {
+    enum Side {
+        case this
+        case left
+        case right
+    }
+
     // THIS, LEFT, RIGHT
-    let side: String
+    let side: Side
     let slot: String?
 
     var symbols: [ASTTypedSymbol] {
