@@ -14,23 +14,6 @@ public enum CompilerError: Error {
     case badSymbolType(String)
 }
 
-func parse(source: String) -> [ASTModelObject] {
-    let parser = Parser(source: source)
-
-    let result: [ASTModelObject]
-
-    do {
-        result = try parser.parseModel()
-    }
-    catch {
-        let context = parser.currentToken.map{ "'\($0.text)'" } ?? "(empty token)"
-        fatalError("Compiler error: \(parser.sourceLocation) around \(context): \(error)")
-    }
-
-    return result
-
-}
-
 public final class Parser {
     var lexer: Lexer
 

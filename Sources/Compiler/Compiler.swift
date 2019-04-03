@@ -24,7 +24,21 @@ public final class Compiler {
     /// - Pass 2: create model objects
     ///
     public func compile(source: String) {
-        let items: [ASTModelObject] = parse(source: source)
+        let parser = Parser(source: source)
+
+        let items: [ASTModelObject]
+
+        do {
+            items = try parser.parseModel()
+        }
+        catch {
+            let context = parser.currentToken.map { "'\($0.text)'" }
+                            ?? "(empty token)"
+
+            // FIXME: Handle this error more gracefully.
+            // TODO: ... or rather have a nice error handling for the compiler
+            fatalError("Compiler error: \(parser.sourceLocation) around \(context): \(error)")
+        }
 
         // PHASE I. Determine symbols
         //
