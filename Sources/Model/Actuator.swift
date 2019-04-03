@@ -155,7 +155,7 @@ public enum SubjectMode: Hashable, CustomStringConvertible {
 }
 
 
-public struct Signal {
+public struct Signal: CustomStringConvertible {
     public let notifications: Set<Symbol>
     public let traps: Set<Symbol>
     public let halts: Bool
@@ -164,6 +164,30 @@ public struct Signal {
         self.notifications = notifications
         self.traps = traps
         self.halts = halts
+    }
+    
+    public var description: String {
+        var result: [String] = []
+
+        if !notifications.isEmpty {
+            let notify = notifications.map {
+                String($0)
+            }.joined(separator: ",")
+            result.append("NOTIFY \(notify)")
+        }
+
+        if !traps.isEmpty {
+            let trap = traps.map {
+                String($0)
+            }.joined(separator: ",")
+            result.append("TRAP \(trap)")
+        }
+
+        if halts {
+            result.append("HALT")
+        }
+
+        return result.joined(separator: " ")
     }
 }
 
@@ -210,7 +234,7 @@ public struct UnaryTransition: CustomStringConvertible {
     }
 }
 
-public struct UnaryActuator {
+public struct UnaryActuator: CustomStringConvertible {
     public let selector: Selector
     public let transitions: [SubjectMode:UnaryTransition]
 
@@ -222,6 +246,21 @@ public struct UnaryActuator {
         self.selector = selector
         self.transitions = transitions
         self.signal = signal
+    }
+
+    public var description: String {
+        var result: [String] = []
+
+        result = [
+            "WHERE", "(", selector.description, ")"
+        ]
+
+        result += transitions.map { key, value in
+            return "IN \(key.descriptionForSubject("LEFT")) \(value)"
+        }
+
+        result.append(signal.description)
+        return result.joined(separator: " ")
     }
 }
 
@@ -291,17 +330,16 @@ public struct BinaryActuator: CustomStringConvertible {
             "ON", "(", rightSelector.description, ")"
         ]
 
-        result += leftTransitions.map {
-            return "IN \($0.key.descriptionForSubject("LEFT")) \($0.value)"
+        result += leftTransitions.map { key, value in
+            return "IN \(key.descriptionForSubject("LEFT")) \(value)"
         }
 
-        result += rightTransitions.map {
-            return "IN \($0.key.descriptionForSubject("RIGHT")) \($0.value)"
+        result += rightTransitions.map { key, value in
+            return "IN \(key.descriptionForSubject("RIGHT")) \(value)"
         }
 
-        // TODO: add control
+        result.append(signal.description)
 
         return result.joined(separator: " ")
     }
 }
-
