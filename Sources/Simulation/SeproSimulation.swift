@@ -58,9 +58,10 @@ public class SeproSimulation: IterativeSimulation {
                     traps.formUnion(actuator.signal.traps)
                 }
 
-                debugPrint("ACT \(label):\(oid)")
+                // TODO: Change this to a log
+                // debugPrint("ACT \(label):\(oid)")
                 let transforms = state.update(oid, with: actuator.transitions)
-                debugPrint("  - \(transforms.count) transformations")
+                // debugPrint("  - \(transforms.count) transformations")
                 transforms.apply(&state.graph)
             }
         }
@@ -94,7 +95,8 @@ public class SeproSimulation: IterativeSimulation {
                         traps.formUnion(actuator.signal.traps)
                     }
 
-                    debugPrint("REACT \(label): \(left) ON \(right)")
+                    // TODO: Change this to a log
+                    // debugPrint("REACT \(label): \(left) ON \(right)")
                     var transforms = SimulationState.Graph.TransformList()
                     transforms += state.update(left,
                                                with: actuator.leftTransitions,
@@ -102,7 +104,7 @@ public class SeproSimulation: IterativeSimulation {
                     transforms += state.update(right,
                                                with: actuator.rightTransitions,
                                                other: left)
-                    debugPrint("  - \(transforms.count) transformations")
+                    // debugPrint("  - \(transforms.count) transformations")
                     transforms.apply(&state.graph)
                 }
             }

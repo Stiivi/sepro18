@@ -13,11 +13,8 @@
 /// Parser Token
 
 import Foundation
-import protocol ParserCombinator.EmptyCheckable
 
 public enum TokenType: Equatable, CustomStringConvertible {
-    case empty
-
     case error(String)
 
     /// Identifier: first character + rest of identifier characters
@@ -35,7 +32,6 @@ public enum TokenType: Equatable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .error(let message): return "error(\(message))"
-        case .empty: return "empty"
         case .symbol: return "symbol"
         case .intLiteral: return "int"
         case .stringLiteral: return "string"
@@ -45,13 +41,13 @@ public enum TokenType: Equatable, CustomStringConvertible {
 }
 
 
-/// Line and column text position. Starts at line 1 and column 1.
-public struct TextPosition: CustomStringConvertible {
+/// Line and column text location. Starts at line 1 and column 1.
+public struct SourceLocation: CustomStringConvertible {
     var line: Int = 1
     var column: Int = 1
 
-	/// Advances the text position. If the character is a new line character,
-	/// then line position is increasd and column position is reset to 1. 
+	/// Advances the text location. If the character is a new line character,
+	/// then line location is increasd and column location is reset to 1. 
     mutating func advanceColumn() {
         column += 1
     }
@@ -68,26 +64,25 @@ public struct TextPosition: CustomStringConvertible {
 
 
 public struct Token: CustomStringConvertible, CustomDebugStringConvertible {
-    public let position: TextPosition
+    public let location: SourceLocation
     public let type: TokenType
     public let text: String
 
-    public init(_ type: TokenType, text: String, position: TextPosition) {
+    public init(_ type: TokenType, text: String, location: SourceLocation) {
         self.type = type
         self.text = text
-        self.position = position
+        self.location = location
     }
 
     public var description: String {
         let str: String
         switch type {
-        case .empty: str = "(empty)"
         case .stringLiteral: str = "'\(text)'"
         case .error(let message): str = "\(message) around '\(self.text)'"
         default:
             str = self.text
         }
-        return "\(str) (\(type)) at \(position)"
+        return "\(str) (\(type)) at \(location)"
     }
 
     public var debugDescription: String {
@@ -106,8 +101,8 @@ public class Lexer {
     var currentChar: UnicodeScalar?
     var text: String
 
-    public var position: TextPosition
-    public var currentToken: Token?
+    public internal (set) var location: SourceLocation
+    public internal (set) var currentToken: Token?
 
     static let whitespaces = CharacterSet.whitespaces | CharacterSet.newlines
     static let decimalDigits = CharacterSet.decimalDigits
@@ -115,7 +110,9 @@ public class Lexer {
     static let symbolCharacters = symbolStart | CharacterSet.decimalDigits | "_"
     static let operatorCharacters =  CharacterSet(charactersIn: ".()!")
 
-    /// Initialize the lexer with model source.
+    /// Initialize the lexer with model source. The current token is `nil` upon
+    /// initialization and the caller is responsible to start parsing with
+    /// the `next()` function.
     ///
     /// - Parameter source: source string
     ///
@@ -123,7 +120,7 @@ public class Lexer {
         iterator = source.unicodeScalars.makeIterator()
 
         currentChar = iterator.next()
-        position = TextPosition()
+        location = SourceLocation()
 
         text = ""
         currentToken = nil
@@ -153,12 +150,14 @@ public class Lexer {
         var tokens = [Token]()
 
         loop: while true {
-            let token = self.next()
+            guard let token = self.next() else {
+                break
+            }
 
             tokens.append(token)
 
             switch token.type {
-            case .empty, .error:
+            case .error:
                 break loop
             default:
                 break
@@ -182,10 +181,10 @@ public class Lexer {
 
             if let char = currentChar {
                 if CharacterSet.newlines.contains(char) {
-                    position.advanceLine()
+                    location.advanceLine()
                 }
                 else {
-                    position.advanceColumn()
+                    location.advanceColumn()
                 }
             }
         }
@@ -306,10 +305,12 @@ public class Lexer {
 
     /// Parse next token.
     ///
-    /// - Returns: currently parsed SourceToken
+    /// - Returns: currently parsed SourceToken or nil if it is at the end of
+    /// the source stream.
     ///
-    public func nextToken() -> TokenType {
-        let result: TokenType
+    @discardableResult
+    func next() -> Token? {
+        let type: TokenType
 
         // Skip whitespace
         while true {
@@ -321,11 +322,12 @@ public class Lexer {
             }
         }
 
-        text = ""
-
         guard !self.atEnd else {
-            return .empty
+            return nil
         }
+
+        // Reset the text buffer.
+        text = ""
 
         // Integer = [0-9]+
         //
@@ -335,40 +337,33 @@ public class Lexer {
             if accept(from: Lexer.symbolStart) {
                 let invalid = currentChar.map { String($0) } ?? "(nil)"
                 let error = "Invalid character \(invalid) in integer literal."
-                result = .error(error)
+                type = .error(error)
             }
             else {
-                result = .intLiteral
+                type = .intLiteral
             }
         }
         else if accept(from: Lexer.symbolStart) {
             acceptWhile(from: Lexer.symbolCharacters)
 
-            result = .symbol
+            type = .symbol
         }
         else if accept(character: "\"", discard: true) {
-            result = scanString()
+            type = scanString()
         }
         else if accept(from: Lexer.operatorCharacters) {
-            result = .operator
+            type = .operator
         }
         else {
             let error = currentChar.map {
                             "Unexpected character '\($0)'"
                         } ?? "Unexpected end"
 
-            result = .error(error)
+            type = .error(error)
         }
 
-        return result
+        currentToken = Token(type, text: text, location: location)
+
+        return currentToken
     }
-
-    /// Parse and return next token.
-    ///
-    func next() -> Token {
-        let type = nextToken()
-
-        return Token(type, text: text, position: position)
-    }
-
 }

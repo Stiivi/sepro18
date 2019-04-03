@@ -25,7 +25,7 @@ enum ASTSignal {
 }
 
 enum ASTModelObject: ASTNode {
-    case define(String, String)
+    case define(SymbolType, String)
     case unaryActuator(String, ASTSelector, [ASTTransition], [ASTSignal])
     case binaryActuator(String, ASTSelector, ASTSelector,
                         [ASTTransition], [ASTSignal])
@@ -39,8 +39,7 @@ enum ASTModelObject: ASTNode {
         switch self {
         case let .define(type, sym):
             // FIXME: that lowercased() should happen earlier
-            result = [ASTTypedSymbol(sym, type: SymbolType(name:
-                type.lowercased()))]
+            result = [ASTTypedSymbol(sym, type: type)]
 
         case let .unaryActuator(name, sel, mods, _):
             result = [ASTTypedSymbol(name, type: .actuator)]
@@ -195,8 +194,14 @@ struct ASTQualifiedSymbol: ASTNode {
 }
 
 struct ASTSubject: ASTNode {
+    enum Side {
+        case this
+        case left
+        case right
+    }
+
     // THIS, LEFT, RIGHT
-    let side: String
+    let side: Side
     let slot: String?
 
     var symbols: [ASTTypedSymbol] {

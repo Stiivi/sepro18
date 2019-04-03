@@ -24,7 +24,22 @@ public final class Compiler {
     /// - Pass 2: create model objects
     ///
     public func compile(source: String) {
-        let items: [ASTModelObject] = parse(source: source)
+        let parser = Parser(source: source)
+
+        let items: [ASTModelObject]
+
+        do {
+            items = try parser.parseModel()
+        }
+        catch {
+            let context = parser.currentToken.map { "'\($0.text)'" }
+                            ?? "(empty token)"
+
+            // FIXME: Handle this error more gracefully.
+            // TODO: ... or rather have a nice error handling for the compiler
+            // #good-first
+            fatalError("Compiler error: \(parser.sourceLocation) around \(context): \(error)")
+        }
 
         // PHASE I. Determine symbols
         //
@@ -74,8 +89,8 @@ public final class Compiler {
     ///
     func compile(modelObject item: ASTModelObject) {
         switch item {
-        case let .define(typeName, symbol):
-            compileDefine(typeName:typeName, symbol:symbol)
+        case let .define(type, symbol):
+            compileDefine(type:type, symbol:symbol)
 
         case let .unaryActuator(name, selector, transitions, signals):
             compileUnaryActuator(name: name,
@@ -99,7 +114,7 @@ public final class Compiler {
         }
     }
 
-    func compileDefine(typeName: String, symbol: String) {
+    func compileDefine(type: SymbolType, symbol: String) {
         // FIXME: Looks like we can skip this one, as we did this in the
         // TODO: Process documentation here
         // Phase I.
@@ -280,7 +295,6 @@ public final class Compiler {
                                   uniquingKeysWith: { (_, last) in last })
 
         return BinaryTransition(tags: mask, bindings: bindings)
-
     }
 
     func compileBinaryActuator(name: String,
@@ -294,7 +308,7 @@ public final class Compiler {
         let compiledSignal = compileSignals(signals: signals)
 
         let leftTransList = transitions.filter {
-            $0.subject.side == "LEFT"
+            $0.subject.side == .left
         }.map {
             ($0.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
              compileBinaryTransition($0))
@@ -303,7 +317,7 @@ public final class Compiler {
                                    uniquingKeysWith: { (_, last) in last })
 
         let rightTransList = transitions.filter {
-            $0.subject.side == "RIGHT"
+            $0.subject.side == .right
         }.map {
             ($0.subject.slot.map { SubjectMode.indirect($0) } ??  SubjectMode.direct,
              compileBinaryTransition($0))

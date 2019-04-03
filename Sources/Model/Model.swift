@@ -5,7 +5,7 @@ public typealias Symbol = String
 
 /// Type of a symbol within a model.
 ///
-public enum SymbolType: String {
+public enum SymbolType: String, CaseIterable {
     /// Symbol represents a slot
     case slot
     /// Symbol represents a tag
@@ -102,20 +102,20 @@ public class Model: CustomStringConvertible {
             value == .slot || value == .tag
         }.map { (key, value) in "DEF \(value) \(key)" }
 
-        items += unaryActuators.map { (key, _) in
-            "ACT \(key) ..."
+        items += unaryActuators.map { (key, value) in
+            "ACT \(key) \(value)"
         }
 
         items += binaryActuators.map { (key, value) in
             "REACT \(key) \(value)"
         }
 
-        items += structures.map { (key, _) in
-            "STRUCT \(key) ..."
+        items += structures.map { (key, value) in
+            "STRUCT \(key) \(value)"
         }
 
-        items += worlds.map { (key, _) in
-            "WORLD \(key) ..."
+        items += worlds.map { (key, value) in
+            "WORLD \(key) \(value)"
         }
 
         items += data.map {
