@@ -23,7 +23,9 @@ public final class Parser {
 
     /// Create a parser for model source `source`.
     ///
-    convenience init(source: String) {
+    // FIXME: This is public temporarily only for commands until we have a
+    // better way of handling compilation of them.
+    public convenience init(source: String) {
         self.init(lexer: Lexer(source))
     }
 
@@ -39,8 +41,10 @@ public final class Parser {
         }
     }
 
-    var sourceLocation: SourceLocation { return lexer.location }
-    var currentToken: Token? { return lexer.currentToken }
+    // FIXME: remove public, interpreter is using this
+    public var sourceLocation: SourceLocation { return lexer.location }
+    // FIXME: remove public, interpreter is using this
+    public var currentToken: Token? { return lexer.currentToken }
 
     /// Parses model and returs list of model objects. Expects end of source
     /// stream after last model object.
@@ -388,7 +392,8 @@ public final class Parser {
         }
         let modifiers = try many(modifier)
 
-        return ASTTransition(subject: subject, modifiers: modifiers)
+        let t = ASTTransition(subject: subject, modifiers: modifiers)
+        return t
     }
 
     // binary_subject := (LEFT | RIGHT) ["." slot]
@@ -402,6 +407,9 @@ public final class Parser {
         }
         else if keyword("RIGHT") {
             side = .right
+        }
+        else if keyword("THIS") {
+            throw CompilerError.keywordExpected("Reference to THIS can not be used in binary actuator")
         }
         else {
             return nil

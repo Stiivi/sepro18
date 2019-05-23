@@ -5,9 +5,12 @@ import DotWriter
 import Model
 
 import Foundation
+import Logging
 
 final class Tool {
 
+    let logger = Logger(label: "sepro.main")
+    
 	let outputPath: String
     let dotsPath: String
 
@@ -15,26 +18,30 @@ final class Tool {
     public let model: Model
 
 	init(modelPath: String, outputPath: String) {
-        let compiler = Compiler()
+        let model = Model()
+
+        let compiler = ModelCompiler(model: model)
         let source: String
 
-        print("Loading model from \(modelPath)...")
+        self.model = model
+
+        logger.info("Loading model from \(modelPath)...")
 
         do {
             source = try String(contentsOfFile: modelPath, encoding:String.Encoding.utf8)
         } catch {
-            errorExit("Unable to read model '\(modelPath)'")
+            logger.error("Unable to read model '\(modelPath)'")
+            exit(1)
         }
 
-        print("Compiling model...")
+        logger.info("Compiling model...")
 
         compiler.compile(source: source)
-        model = compiler.model
 
-        print("Model compiled")
-        print("    Symbol count    : \(model.symbols.count)")
-        print("    Unary actuators : \(model.unaryActuators.count)")
-        print("    Binary actuators: \(model.unaryActuators.count)")
+        logger.info("Model compiled")
+        logger.info("    Symbol count    : \(model.symbols.count)")
+        logger.info("    Unary actuators : \(model.unaryActuators.count)")
+        logger.info("    Binary actuators: \(model.unaryActuators.count)")
 
         let simulation = SeproSimulation(model: model)
         simulator = IterativeSimulator(simulation: simulation)

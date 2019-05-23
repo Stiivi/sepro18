@@ -10,13 +10,17 @@ let package = Package(
         .executable(
             name: "sepro",
             targets: ["Tool"]),
+        .executable(
+            name: "seprolab",
+            targets: ["Lab"]),
         .library(
             name: "Sepro",
-            targets: ["Simulation", "Compiler"])
+            targets: ["Simulation", "Compiler"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Stiivi/DotWriter.git", from: "0.1.0"),
-        .package(url: "https://github.com/AgentFarms/ObjectGraph.git", from: "0.1.2")
+        .package(url: "https://github.com/AgentFarms/ObjectGraph.git", from: "0.1.2"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
     ],
     targets: [
         .target(
@@ -33,7 +37,24 @@ let package = Package(
             dependencies: ["Model", "Simulator", "ObjectGraph"]),
         .target(
             name: "Tool",
-            dependencies: ["Compiler", "Simulation", "DotWriter"]),
+            dependencies: [
+                "Compiler",
+                "Simulation",
+                "DotWriter",
+                "Logging",
+            ]),
+        .target(
+            name: "Lab",
+            dependencies: [
+                "Compiler",
+                "Simulation",
+                "DotWriter",
+                "Logging",
+                "Linenoise"
+            ]),
+        .target(
+            name: "Linenoise",
+            dependencies: []),
         .testTarget(
             name: "Sepro18Tests",
             dependencies: ["Compiler", "Simulation"])

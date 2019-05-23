@@ -1,10 +1,12 @@
 // TODO: This is preliminary implementation of the tool.
 //
 import Foundation
+import Logging
 
+LoggingSystem.bootstrap(StreamLogHandler.standardError)
+let logger = Logger(label: "sepro.main")
 
-let SEPRO_VERSION = "0.1"
-
+public let SEPRO_VERSION = "0.1"
 
 func usage() {
     print("""
@@ -49,25 +51,6 @@ func parseArguments(args: [String]) -> ParsedArguments {
     return ParsedArguments(options: options, positional: positional)
 }
 
-struct FileOutputStream: TextOutputStream {
-    let handle: FileHandle
-
-    func write(_ string: String) {
-        if let data = string.data(using: .utf8) {
-            handle.write(data)
-        }
-        else {
-            fatalError("Can't convert string to data: \(string)")
-        }
-    }
-}
-
-func errorExit(_ message: String) -> Never {
-    var stderrStream = FileOutputStream(handle: FileHandle.standardError)
-    print("ERROR: \(message)", to: &stderrStream)
-    exit(1)
-}
-
 func printVersion() -> Never {
     print(SEPRO_VERSION)
     exit(0)
@@ -86,7 +69,8 @@ func main() {
     }
 
     guard let stepCount = Int(args.positional[1]) else {
-        errorExit("Invalid number of steps '\(args.positional[1])'")
+        logger.error("Invalid number of steps '\(args.positional[1])'")
+        exit(1)
     }
 
     // Load and Compile model
@@ -104,7 +88,8 @@ func main() {
     // -----------------------------------------------------------------------
     // FIXME: Untie this initialization
     guard tool.model.worlds[worldName] != nil else {
-        errorExit("No world with name '\(worldName)' found")
+        logger.error("No world with name '\(worldName)' found")
+        exit(1)
     }
     tool.initializeWorld(worldName)
     tool.run(stepCount: stepCount)

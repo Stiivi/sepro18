@@ -2,7 +2,7 @@ import Model
 
 /// Sepro compiler - complies ASTModelObjects into model
 ///
-public final class Compiler {
+public final class ModelCompiler {
     // Internal structure for hashable purposes of the (mode, symbol) tuple
     struct ModeSymbol: Hashable {
         let mode: SubjectMode
@@ -14,8 +14,9 @@ public final class Compiler {
     // Counter for the anonymous structres to assign special naming
     public var anonStructCounter: Int = 1
 
-    public init() {
-        model = Model()
+    /// Create a compiler that compiles into the `model`.
+    public init(model: Model) {
+        self.model = model
     }
 
     /// Compile `string` into model objects.
@@ -272,7 +273,10 @@ public final class Compiler {
                         return (slot, .inOther(target.symbol))
                     }
                     else {
-                        fatalError("Indirection in biary actuator: \(qual).\(slot)")
+                        // TODO: Better message
+                        // Binary actuator can't have indirection. It can only
+                        // operate on the objects reacting.
+                        fatalError("Indirection in biary actuator: \(qual).\(target.symbol)")
                     }
                 }
                 else {
