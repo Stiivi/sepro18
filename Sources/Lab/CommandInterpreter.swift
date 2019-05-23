@@ -68,12 +68,11 @@ public final class CommandInterpreter {
         print("""
         Sepro Interpreter Commands
 
-        exit  - Exit the interpreter.
-        help  - Print help.
-        run   - Run simulation for number of steps.
-        step  - Run one step of a simulation.
-        reset - Reset the simulation.
         """)
+
+        for command in allCommands {
+            print("\(command.commandName) - \(command.synopsis)")
+        }
     }
 
     public func step() {

@@ -1,28 +1,55 @@
 /// Interpreter commands
 ///
 public protocol Command {
+    static var commandName: String { get }
+
+    /// Short description of the command
+    static var synopsis: String { get }
+
+    /// Apply the command to the `interpreter`
     func apply(interpreter: CommandInterpreter)
 }
 
+public let allCommands: [Command.Type] = [
+    ExitCommand.self,
+    HelpCommand.self,
+    StepCommand.self,
+    ResetCommand.self,
+    RunCommand.self,
+]
+
+
 public class ExitCommand: Command {
+    public static let synopsis = "Exit the interpreter"
+    public static let commandName = "exit"
+
     public func apply(interpreter: CommandInterpreter) {
         interpreter.stop()
     }
 }
 
 public class HelpCommand: Command {
+    public static let synopsis = "Print command help"
+    public static let commandName = "help"
+
     public func apply(interpreter: CommandInterpreter) {
         interpreter.help()
     }
 }
 
 public class StepCommand: Command {
+    public static let synopsis = "Run one step of the simulation"
+    public static let commandName = "step"
+
     public func apply(interpreter: CommandInterpreter) {
         interpreter.step()
     }
 }
 
 public class ResetCommand: Command {
+    public static let synopsis = "Reset the simulation"
+    public static let commandName = "reset"
+
     public func apply(interpreter: CommandInterpreter) {
         interpreter.reset()
     }
@@ -30,6 +57,9 @@ public class ResetCommand: Command {
 
 // FIXME: Should be simulation command
 public class RunCommand: Command {
+    public static let synopsis = "Run simulation for number of steps"
+    public static let commandName = "run"
+
     let steps: Int
 
     public init(steps: Int) {
