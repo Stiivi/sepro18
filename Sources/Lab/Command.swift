@@ -24,7 +24,7 @@ public class ExitCommand: Command {
     public static let commandName = "exit"
 
     public func apply(interpreter: CommandInterpreter) {
-        interpreter.stop()
+        interpreter.exit()
     }
 }
 
@@ -33,7 +33,7 @@ public class HelpCommand: Command {
     public static let commandName = "help"
 
     public func apply(interpreter: CommandInterpreter) {
-        interpreter.help()
+        interpreter.displayHelp()
     }
 }
 
@@ -42,7 +42,7 @@ public class StepCommand: Command {
     public static let commandName = "step"
 
     public func apply(interpreter: CommandInterpreter) {
-        interpreter.step()
+        interpreter.stepSimulation()
     }
 }
 
@@ -51,7 +51,7 @@ public class ResetCommand: Command {
     public static let commandName = "reset"
 
     public func apply(interpreter: CommandInterpreter) {
-        interpreter.reset()
+        interpreter.resetSimulation()
     }
 }
 
@@ -67,6 +67,6 @@ public class RunCommand: Command {
     }
 
     public func apply(interpreter: CommandInterpreter) {
-        interpreter.run(steps: steps)
+        interpreter.runSimulation(steps: steps)
     }
 }

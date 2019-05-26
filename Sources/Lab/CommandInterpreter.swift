@@ -57,16 +57,17 @@ public final class CommandInterpreter {
 
     /// Signalst that the interpreter should stop.
     ///
-    public func stop() {
+    public func exit() {
         self.shouldStop = true
     }
-    public func run(steps: Int) {
+    public func runSimulation(steps: Int) {
         print("(NOT YET) RUN for \(steps) steps")
     }
 
-    public func help() {
+    // displayHelp
+    public func displayHelp() {
         print("""
-        Sepro Interpreter Commands
+        Commands
 
         """)
 
@@ -75,10 +76,10 @@ public final class CommandInterpreter {
         }
     }
 
-    public func step() {
+    public func stepSimulation() {
         print("(NOT YET) STEP")
     }
-    public func reset() {
+    public func resetSimulation() {
         print("(NOT YET) RESET")
     }
 

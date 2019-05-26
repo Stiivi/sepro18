@@ -25,6 +25,13 @@ func main() {
     let workspace = Workspace(path: workspacePath)
     let interpreter = CommandInterpreter()
 
+    print("""
+          Sepro18 Interpreter
+
+          Type 'help' for help, 'exit' to quit the interpreter.
+
+          """)
+
     while(true) {
         let commandString: String = String(cString: linenoise("> "))
 
