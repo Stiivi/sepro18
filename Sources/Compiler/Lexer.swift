@@ -14,83 +14,6 @@
 
 import Foundation
 
-public enum TokenType: Equatable, CustomStringConvertible {
-    case error(String)
-
-    /// Identifier: first character + rest of identifier characters
-    case symbol
-
-    /// Integer
-    case intLiteral
-
-    /// Multi-line string containing a piece of documentation
-    case stringLiteral
-
-    /// From a list of operators
-    case `operator`
-
-    public var description: String {
-        switch self {
-        case .error(let message): return "error(\(message))"
-        case .symbol: return "symbol"
-        case .intLiteral: return "int"
-        case .stringLiteral: return "string"
-        case .operator: return "operator"
-        }
-    }
-}
-
-
-/// Line and column text location. Starts at line 1 and column 1.
-public struct SourceLocation: CustomStringConvertible {
-    var line: Int = 1
-    var column: Int = 1
-
-	/// Advances the text location. If the character is a new line character,
-	/// then line location is increasd and column location is reset to 1. 
-    mutating func advanceColumn() {
-        column += 1
-    }
-
-    mutating func advanceLine() {
-        column = 1
-        line += 1
-    }
-
-    public var description: String {
-        return "\(line):\(column)"
-    }
-}
-
-
-public struct Token: CustomStringConvertible, CustomDebugStringConvertible {
-    public let location: SourceLocation
-    public let type: TokenType
-    public let text: String
-
-    public init(_ type: TokenType, text: String, location: SourceLocation) {
-        self.type = type
-        self.text = text
-        self.location = location
-    }
-
-    public var description: String {
-        let str: String
-        switch type {
-        case .stringLiteral: str = "'\(text)'"
-        case .error(let message): str = "\(message) around '\(self.text)'"
-        default:
-            str = self.text
-        }
-        return "\(str) (\(type)) at \(location)"
-    }
-
-    public var debugDescription: String {
-        return description
-    }
-}
-
-
 /// Simple lexer that produces symbols, keywords, integers, operators and
 /// docstrings. Symbols can be quoted with a back-quote character.
 ///
@@ -127,13 +50,13 @@ public class Lexer {
     }
     /// Latest error token message.
     ///
-    public var error: String? {
+    public var error: LexerError? {
         guard let type = currentToken?.type else {
             return nil
         }
 
         switch type {
-        case .error(let message): return message
+        case .error(let error): return error
         default: return nil
         }
     }
@@ -293,19 +216,19 @@ public class Lexer {
                     break
                 }
                 else if accept(from: CharacterSet.newlines) {
-                    return .error("New line in a single-line string.")
+                    return .error(.newLineInString)
                 }
                 advance()
             }
         }
 
-        return .error("Unexpected end of string")
+        return .error(.unexpectedEndOfString)
 
     }
 
     /// Parse next token.
     ///
-    /// - Returns: currently parsed SourceToken or nil if it is at the end of
+    /// - Returns: currently parsed SourceToken or `nil` if it is at the end of
     /// the source stream.
     ///
     @discardableResult
@@ -335,9 +258,7 @@ public class Lexer {
             self.acceptWhile(from: Lexer.decimalDigits)
 
             if accept(from: Lexer.symbolStart) {
-                let invalid = currentChar.map { String($0) } ?? "(nil)"
-                let error = "Invalid character \(invalid) in integer literal."
-                type = .error(error)
+                type = .error(.invalidCharacterInInt)
             }
             else {
                 type = .intLiteral
@@ -355,9 +276,8 @@ public class Lexer {
             type = .operator
         }
         else {
-            let error = currentChar.map {
-                            "Unexpected character '\($0)'"
-                        } ?? "Unexpected end"
+            let error: LexerError = currentChar.map {
+                .unexpectedCharacter($0) } ?? .unexpectedEnd
 
             type = .error(error)
         }
