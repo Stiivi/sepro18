@@ -31,7 +31,7 @@ let package = Package(
             dependencies: []),
         .target(
             name: "Compiler",
-            dependencies: []),
+            dependencies: ["Model"]),
         .target(
             name: "Simulation",
             dependencies: ["Model", "Simulator", "ObjectGraph"]),
@@ -56,7 +56,7 @@ let package = Package(
             name: "Linenoise",
             dependencies: []),
         .testTarget(
-            name: "Sepro18Tests",
-            dependencies: ["Compiler", "Simulation"])
+            name: "CompilerTests",
+            dependencies: ["Compiler"])
     ]
 )
