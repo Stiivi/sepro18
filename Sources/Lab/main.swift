@@ -33,7 +33,12 @@ func main() {
           """)
 
     while(true) {
-        let commandString: String = String(cString: linenoise("> "))
+        guard let line = linenoise("> ") else {
+            // We got ^D
+            break
+        }
+
+        let commandString: String = String(cString: line)
 
         interpreter.interpret(source: commandString)
 
@@ -43,6 +48,7 @@ func main() {
 
         linenoiseHistoryAdd(commandString)
     }
+    print("Bye!")
 
 }
 

@@ -19,6 +19,15 @@ public let allCommands: [Command.Type] = [
 ]
 
 
+public class DoNothingCommand: Command {
+    public static let synopsis = "Do nothing"
+    public static let commandName = "nothing"
+
+    public func apply(interpreter: CommandInterpreter) {
+        // do nothing
+    }
+}
+
 public class ExitCommand: Command {
     public static let synopsis = "Exit the interpreter"
     public static let commandName = "exit"

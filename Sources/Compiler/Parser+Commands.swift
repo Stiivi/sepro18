@@ -1,5 +1,6 @@
 // FIXME: Don't be public
 public enum ASTCommand {
+    case nothing
     case exit
     case help
     // case importModel(String)
@@ -13,6 +14,19 @@ public enum ASTCommand {
 
 extension Parser {
     // FIXME: Don't be public
+    public func commandLine() throws -> ASTCommand {
+        let command = try _command()
+
+        try expectEnd()
+
+        if let command = command {
+            return command
+        }
+        else {
+            return .nothing
+        }
+    }
+
     public func _command() throws -> ASTCommand? {
         if keyword("EXIT") {
             return .exit
@@ -38,15 +52,15 @@ extension Parser {
         guard keyword("IMPORT") else { return nil }
        
         if keyword("MODEL") {
-            throw CompilerError.keywordExpected("IMPORT MODEL not yet implemented")
+            throw ParserError.keywordExpected("IMPORT MODEL not yet implemented")
             // return try _importModel()
         }
         else if keyword("GRAPH") {
-            throw CompilerError.keywordExpected("IMPORT GRAPH not yet implemented")
+            throw ParserError.keywordExpected("IMPORT GRAPH not yet implemented")
             // return try _importGraph()
         }
         else {
-            throw CompilerError.keywordExpected("Can import only MODEL or GRAPH")
+            throw ParserError.keywordExpected("Can import only MODEL or GRAPH")
         }
     }
 
@@ -54,7 +68,7 @@ extension Parser {
         guard keyword("RUN") else { return nil }
 
         guard let steps = integer() else {
-            throw CompilerError.unexpectedTokenType("number of steps expected")
+            throw ParserError.unexpectedTokenType("number of steps expected")
         } 
 
         return .run(steps)

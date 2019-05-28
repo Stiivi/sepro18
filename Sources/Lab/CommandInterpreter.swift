@@ -1,8 +1,10 @@
 import Compiler
+import Logging
 
 public final class CommandInterpreter {
 
     var shouldStop: Bool
+    let logger = Logger(label: "sepro.main")
 
     public init() {
         shouldStop = false
@@ -13,30 +15,27 @@ public final class CommandInterpreter {
     public func interpret(source: String) {
         let parser = Parser(source: source)
 
-        let maybeAST: ASTCommand?
+        let commandAST: ASTCommand
 
         do {
-            maybeAST = try parser._command()
+            commandAST = try parser.commandLine()
         }
         catch {
             let context = parser.currentToken.map { "'\($0.text)'" }
-                            ?? "(empty token)"
+                            ?? "end"
 
             // FIXME: Handle this error more gracefully.
             // TODO: ... or rather have a nice error handling for the compiler
             // #good-first
-            fatalError("Compiler error: \(parser.sourceLocation) around \(context): \(error)")
-        }
-
-        guard let ast = maybeAST else {
-            fatalError("Empty command AST")
+            print("Command parser error at \(parser.sourceLocation.longDescription) around \(context): \(error)")
+            return
         }
 
         let maybeCommand: Command?
 
         do {
             let compiler = CommandCompiler()
-            maybeCommand = try compiler.compile(command: ast)
+            maybeCommand = try compiler.compile(command: commandAST)
         }
         catch {
             fatalError("Compiler error: \(error)")

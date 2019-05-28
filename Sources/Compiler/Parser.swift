@@ -20,7 +20,7 @@ public enum ParserError: Error, CustomStringConvertible {
         case .unexpectedToken:
             return "Unexpected token"
         case .unexpectedTokenType(let type):
-            return "Unexpected token type \(type)"
+            return "Unexpected token type: \(type)"
         case .symbolExpected(let sym):
             return "Expected symbol \(sym)"
         case .keywordExpected(let keyword):
