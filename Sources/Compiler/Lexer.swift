@@ -246,6 +246,7 @@ public class Lexer {
         }
 
         guard !self.atEnd else {
+            currentToken = nil
             return nil
         }
 

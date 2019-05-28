@@ -94,6 +94,31 @@ class LexerTestCase: XCTestCase {
         XCTAssertNil(lexer.next())
     }
 
+    func testAtEnd() {
+        var lexer = Lexer("")
+
+        // We have empty string - we are at end and we don't have a token
+        XCTAssertTrue(lexer.atEnd)
+        XCTAssertNil(lexer.currentToken)
+
+        // We are at the beginning - we are not at end, but we did not read
+        // anything yet
+        lexer = Lexer("help")
+        XCTAssertFalse(lexer.atEnd)
+        XCTAssertNil(lexer.currentToken)
+
+        // We are at the beginning - we are not at end, but we did not read
+        // anything yet
+        lexer = Lexer("help")
+        lexer.next()
+        XCTAssertTrue(lexer.atEnd)
+        XCTAssertNotNil(lexer.currentToken)
+
+        lexer.next()
+        XCTAssertTrue(lexer.atEnd)
+        XCTAssertNil(lexer.currentToken)
+    }
+
 	func testString() {
 		var lexer = Lexer("\"")
         var token: Token?

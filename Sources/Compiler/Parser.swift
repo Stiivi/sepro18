@@ -2,7 +2,8 @@
 import Model
 
 // TODO: Add human readable descriptions for the errors. #good-first
-public enum CompilerError: Error {
+public enum ParserError: Error, CustomStringConvertible {
+    case unexpectedToken
     case unexpectedTokenType(String)
     case symbolExpected(String)
     case keywordExpected(String)
@@ -13,6 +14,30 @@ public enum CompilerError: Error {
     case qualifiedSymbolExpected
 
     case badSymbolType(String)
+
+    public var description: String {
+        switch self {
+        case .unexpectedToken:
+            return "Unexpected token"
+        case .unexpectedTokenType(let type):
+            return "Unexpected token type \(type)"
+        case .symbolExpected(let sym):
+            return "Expected symbol \(sym)"
+        case .keywordExpected(let keyword):
+            return "Expected keyword \(keyword)"
+        case .tagListExpected(let label):
+            return "Expected list of tags - \(label)"
+        case .selectorExpected:
+            return "Selector expected"
+        case .subjectExpected:
+            return "Subject expected"
+        case .qualifiedSymbolExpected:
+            return "Qualified symbol expected"
+        case .badSymbolType(let type):
+            return "Bad symbol type: \(type)"
+        }
+    }
+
 }
 
 /// Parser for Sepro source code. Takes a textual input (a string) and
@@ -29,7 +54,7 @@ public final class Parser {
         self.init(lexer: Lexer(source))
     }
 
-    /// Create a parser from already initialized lexer.
+    /// Create a parser f/rom already initialized lexer.
     ///
     init(lexer: Lexer) {
         self.lexer = lexer
@@ -53,7 +78,7 @@ public final class Parser {
         let objects = try many(modelObject)
 
         guard lexer.atEnd else {
-            throw CompilerError.unexpectedTokenType("expected model object")
+            throw ParserError.unexpectedTokenType("expected model object")
         }
         return objects
     }
@@ -144,7 +169,7 @@ public final class Parser {
         let tags: [String] = try many(symbol)
 
         guard oper(")") else {
-            throw CompilerError.unexpectedTokenType("expected tag symbol or ')'")
+            throw ParserError.unexpectedTokenType("expected tag symbol or ')'")
         }
 
         return tags
@@ -156,7 +181,7 @@ public final class Parser {
     ///
     func expect(symbol label: String) throws -> String {
         guard let symbol = symbol() else {
-            throw CompilerError.symbolExpected(label)
+            throw ParserError.symbolExpected(label)
         }
         return symbol
     }
@@ -165,7 +190,7 @@ public final class Parser {
     ///
     func expect(keyword: String) throws {
         guard self.keyword(keyword) else {
-            throw CompilerError.keywordExpected(keyword)
+            throw ParserError.keywordExpected(keyword)
         }
     }
 
@@ -175,9 +200,17 @@ public final class Parser {
     ///
     func expect(tagList label: String) throws -> [String] {
         guard let list = try tagList() else {
-            throw CompilerError.tagListExpected(label)
+            throw ParserError.tagListExpected(label)
         }
         return list
+    }
+
+    /// Expects end of stream.
+    func expectEnd() throws {
+        // Do we have something parsed but not yet recognized?
+        if !lexer.atEnd || lexer.currentToken != nil {
+            throw ParserError.unexpectedToken
+        }
     }
 
 
@@ -213,7 +246,7 @@ public final class Parser {
         // TODO: Make better error reporting here, don't point context to the
         // symbol name
         guard let symbolType = SymbolType(name: typeName.lowercased()) else {
-            throw CompilerError.badSymbolType(typeName)
+            throw ParserError.badSymbolType(typeName)
         }
         let symbolName = try expect(symbol: "symbol name")
 
@@ -245,7 +278,7 @@ public final class Parser {
             return .quantifiedObject(count, list)
         }
         else {
-            throw CompilerError.unexpectedTokenType("structure name or tag list expected")
+            throw ParserError.unexpectedTokenType("structure name or tag list expected")
         }
     }
 
@@ -266,7 +299,7 @@ public final class Parser {
         let tags = try expect(tagList: "data tags")
 
         guard let text = string() else {
-            throw CompilerError.unexpectedTokenType("expected string")
+            throw ParserError.unexpectedTokenType("expected string")
         }
 
         return .data(tags, text)
@@ -291,7 +324,7 @@ public final class Parser {
         guard keyword("BIND") else { return nil }
 
         guard let origin = try _qualifiedSymbol() else {
-            throw CompilerError.symbolExpected("binding origin expected")
+            throw ParserError.symbolExpected("binding origin expected")
         }
 
         try expect(keyword: "TO")
@@ -339,7 +372,7 @@ public final class Parser {
         try expect(keyword: "WHERE")
 
         guard let selector = try _selector() else {
-            throw CompilerError.selectorExpected
+            throw ParserError.selectorExpected
         }
 
         let signals = try many(_signal)
@@ -363,13 +396,13 @@ public final class Parser {
         try expect(keyword: "WHERE")
 
         guard let leftSelector = try _selector() else {
-            throw CompilerError.selectorExpected
+            throw ParserError.selectorExpected
         }
 
         try expect(keyword: "ON")
 
         guard let rightSelector = try _selector() else {
-            throw CompilerError.selectorExpected
+            throw ParserError.selectorExpected
         }
 
         let signals = try many(_signal)
@@ -388,7 +421,7 @@ public final class Parser {
         }
 
         guard let subject = try binarySubject() else {
-            throw CompilerError.subjectExpected
+            throw ParserError.subjectExpected
         }
         let modifiers = try many(modifier)
 
@@ -409,7 +442,7 @@ public final class Parser {
             side = .right
         }
         else if keyword("THIS") {
-            throw CompilerError.keywordExpected("Reference to THIS can not be used in binary actuator")
+            throw ParserError.keywordExpected("Reference to THIS can not be used in binary actuator")
         }
         else {
             return nil
@@ -434,7 +467,7 @@ public final class Parser {
         }
 
         guard let subject = try _unarySubject() else {
-            throw CompilerError.subjectExpected
+            throw ParserError.subjectExpected
         }
 
         let modifiers = try many(modifier)
@@ -464,7 +497,7 @@ public final class Parser {
         try expect(keyword: "TO")
 
         guard let target = try _qualifiedSymbol() else {
-            throw CompilerError.symbolExpected("qualified symbol of binding target")
+            throw ParserError.symbolExpected("qualified symbol of binding target")
         }
 
         return .bind(subjectSlot, target)
@@ -535,7 +568,7 @@ public final class Parser {
         let presences = try many(symbolPresence)
 
         guard oper(")") else {
-            throw CompilerError.unexpectedTokenType("expected right parenthesis ')'")
+            throw ParserError.unexpectedTokenType("expected right parenthesis ')'")
         }
 
         return ASTSelector.match(presences)
@@ -552,7 +585,7 @@ public final class Parser {
         }
         else {
             if negate {
-                throw CompilerError.qualifiedSymbolExpected
+                throw ParserError.qualifiedSymbolExpected
             }
             else {
                 return nil
