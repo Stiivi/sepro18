@@ -10,9 +10,6 @@ let package = Package(
         .executable(
             name: "sepro",
             targets: ["Tool"]),
-        .executable(
-            name: "seprolab",
-            targets: ["Lab"]),
         .library(
             name: "Sepro",
             targets: ["Simulation", "Compiler"]),
@@ -21,6 +18,7 @@ let package = Package(
         .package(url: "https://github.com/Stiivi/DotWriter.git", from: "0.1.0"),
         .package(url: "https://github.com/AgentFarms/ObjectGraph.git", from: "0.1.2"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/kylef/Commander.git", from: "0.8.0"),
     ],
     targets: [
         .target(
@@ -38,19 +36,20 @@ let package = Package(
         .target(
             name: "Tool",
             dependencies: [
+                "Linenoise",
+                "Commander",
+                "Shell",
                 "Compiler",
                 "Simulation",
                 "DotWriter",
                 "Logging",
             ]),
         .target(
-            name: "Lab",
+            name: "Shell",
             dependencies: [
                 "Compiler",
                 "Simulation",
-                "DotWriter",
                 "Logging",
-                "Linenoise"
             ]),
         .target(
             name: "Linenoise",

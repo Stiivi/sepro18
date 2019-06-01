@@ -50,21 +50,6 @@ final class Tool {
         dotsPath = outputPath + "/dots"
 	}
 
-    func initializeWorld(_ name: String) {
-        simulator.simulation.createWorld(name)
-    }
-
-    func printSymbolTable() {
-        let symbols = simulator.simulation.model.symbols
-        print("Symbol Table:")
-        symbols.sorted { rhs, lhs in
-            lhs.key.lowercased() > rhs.key.lowercased()
-        }
-        .forEach {
-            print("    \($0.key) \($0.value.rawValue)")
-        }
-    }
-
     func run(stepCount: Int) {
         prepareOutput()
 

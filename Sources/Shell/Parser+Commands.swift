@@ -1,8 +1,11 @@
+import Compiler
+
 // FIXME: Don't be public
-public enum ASTCommand {
+enum ASTCommand {
     case nothing
     case exit
     case help
+    case status
     // case importModel(String)
     // case importGraph(String)
     // case exportModel(String)
@@ -10,11 +13,13 @@ public enum ASTCommand {
     case run(Int)
     case step
     case reset
+    case halt
+    case unhalt
 }
 
 extension Parser {
     // FIXME: Don't be public
-    public func commandLine() throws -> ASTCommand {
+    func commandLine() throws -> ASTCommand {
         let command = try _command()
 
         try expectEnd()
@@ -27,12 +32,15 @@ extension Parser {
         }
     }
 
-    public func _command() throws -> ASTCommand? {
+    func _command() throws -> ASTCommand? {
         if keyword("EXIT") {
             return .exit
         }
         else if keyword("HELP") {
             return .help
+        }
+        else if keyword("STATUS") {
+            return .status
         }
         else if keyword("STEP") {
             return .step

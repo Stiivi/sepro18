@@ -6,24 +6,24 @@ public protocol Command {
     /// Short description of the command
     static var synopsis: String { get }
 
-    /// Apply the command to the `interpreter`
-    func apply(interpreter: CommandInterpreter)
+    /// run the command to the `interpreter`
+    func run(shell: Shell)
 }
 
 public let allCommands: [Command.Type] = [
     ExitCommand.self,
     HelpCommand.self,
+    StatusCommand.self,
     StepCommand.self,
     ResetCommand.self,
-    RunCommand.self,
+    RunCommand.self
 ]
-
 
 public class DoNothingCommand: Command {
     public static let synopsis = "Do nothing"
     public static let commandName = "nothing"
 
-    public func apply(interpreter: CommandInterpreter) {
+    public func run(shell: Shell) {
         // do nothing
     }
 }
@@ -32,8 +32,8 @@ public class ExitCommand: Command {
     public static let synopsis = "Exit the interpreter"
     public static let commandName = "exit"
 
-    public func apply(interpreter: CommandInterpreter) {
-        interpreter.exit()
+    public func run(shell: Shell) {
+        shell.exit()
     }
 }
 
@@ -41,17 +41,42 @@ public class HelpCommand: Command {
     public static let synopsis = "Print command help"
     public static let commandName = "help"
 
-    public func apply(interpreter: CommandInterpreter) {
-        interpreter.displayHelp()
+    public func run(shell: Shell) {
+        shell.displayHelp()
     }
 }
+
+public class StatusCommand: Command {
+    public static let synopsis = "Print simulator status"
+    public static let commandName = "status"
+
+    public func run(shell: Shell) {
+        shell.displayStatus()
+    }
+}
+
+public class SetHaltFlagCommand: Command {
+    public static let synopsis = "Print simulator status"
+    public static let commandName = "status"
+
+    public let haltFlag: Bool
+
+    public init(halt: Bool) {
+        haltFlag = halt
+    }
+
+    public func run(shell: Shell) {
+        // do nothing
+    }
+}
+
 
 public class StepCommand: Command {
     public static let synopsis = "Run one step of the simulation"
     public static let commandName = "step"
 
-    public func apply(interpreter: CommandInterpreter) {
-        interpreter.stepSimulation()
+    public func run(shell: Shell) {
+        shell.runSimulation(steps: 1)
     }
 }
 
@@ -59,8 +84,8 @@ public class ResetCommand: Command {
     public static let synopsis = "Reset the simulation"
     public static let commandName = "reset"
 
-    public func apply(interpreter: CommandInterpreter) {
-        interpreter.resetSimulation()
+    public func run(shell: Shell) {
+        // FIXME: do something
     }
 }
 
@@ -75,7 +100,7 @@ public class RunCommand: Command {
         self.steps = steps
     }
 
-    public func apply(interpreter: CommandInterpreter) {
-        interpreter.runSimulation(steps: steps)
+    public func run(shell: Shell) {
+        shell.runSimulation(steps: steps)
     }
 }
