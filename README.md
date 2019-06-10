@@ -9,11 +9,13 @@ See [Introduction slides](https://www.slideshare.net/Stiivi/sepro-introduction)
 
 - [Swift](https://swift.org/download/) 5.0
 
-Uses the following packages (no need to download, included in the Package
-manifest):
+Dependencies:
 
 - [DotWriter](https://github.com/stiivi/DotWriter) - for generating
     [Graphviz](https://www.graphviz.org) output.
+- [Swift Log](https://github.com/apple/swift-log) - Swift logging
+- [Commander](https://github.com/kylef/Commander.git) - Command line argument
+    parsing
 
 
 # Build
@@ -31,11 +33,19 @@ generates output into `./out/dots`.
 swift run sepro run Models/linker.sepro 10
 ```
 
-Other options for the command-line tool:
+Sepro Commands:
+
+    * `run` - run a simulation
+    * `shell` - interactive shell
+    * `symbols` - dump model symbols
+    * `version` - display version
+
+
+Use `--help` to get more information about the commands.
+
+Run command options:
 
 ```
-  --help            List options
-  --dump-symbols    Dump symbol table.
   -o DIR            Output directory. Default: ./out
   -w WORLD          World name to initialize simlation. Default: main
 ```
