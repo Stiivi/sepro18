@@ -1,113 +1,87 @@
-// TODO: This is preliminary implementation of the tool.
-//
 import Foundation
+import Logging
+import Commander
+import Shell
+import Linenoise
+
+LoggingSystem.bootstrap(StreamLogHandler.standardError)
+let logger = Logger(label: "sepro.main")
+
+public let SEPRO_VERSION = "0.1"
 
 
-let SEPRO_VERSION = "0.1"
+let group = Group {
+    // Run model
+    // =========
+    $0.command("run",
+        Option("output", default: ".", flag:"o"),
+        Option("world", default: "main", flag: "w"),
+        Argument<String>("model"),
+        Argument<Int>("steps")
+        ) { (outputURL, worldName, modelPath, steps) in
+        let shell = Shell(outputURL: outputURL)
 
+        logger.info("Importing model \(modelPath)")
+        shell.importModel(path: modelPath)
+        // TODO: Check for it's existence
+        shell.createWorld(worldName)
+        logger.info("Running...")
+        shell.runSimulation(steps: steps)
+        logger.info("Done.")
+    }
 
-func usage() {
-    print("""
-          Sepro18 simulator runner v\(SEPRO_VERSION)
+    // Symbols
+    // =======
+    $0.command("symbols",
+        Argument<String>("model",
+        description: "Dump symbol table of a model")
 
-          Usage: \(CommandLine.arguments[0]) [options] MODEL STEPS
+        ) { (modelPath) in
+        let shell = Shell()
 
-          Options:
-            --dump-symbols    Dump symbol table.
-            -o DIR            Output directory. Default: ./out
-            -w WORLD          World name to initialize simlation. Default: main
-          """)
-}
+        shell.importModel(path: modelPath)
+        shell.printSymbolTable()
+    }
 
-struct ParsedArguments {
-    let options: [String:String]
-    let positional: [String]
-}
+    // Version
+    // =======
+    $0.command("version") {
+        print(SEPRO_VERSION)
+    }
 
-func parseArguments(args: [String]) -> ParsedArguments {
-    var iterator = args.makeIterator()
-    var options: [String:String] = [:]
-    var positional: [String] = []
-    // Eat the command name
-    _ = iterator.next()
+    // Shell
+    // =====
+    $0.command("shell",
+        Option("output", default: ".", flag:"o")
+        ) { (outputURL) in
+        let shell = Shell(outputURL: outputURL)
 
-    while let arg = iterator.next() {
-        switch arg {
-        case       "--dump-symbols":
-            // TODO: bool!
-            options["dump_symbols"] = "true"
-        case "-o", "--output":
-            options["output"] = iterator.next()
-        case "-w", "--world":
-            options["world"] = iterator.next()
-        default:
-            positional.append(arg)
+        print("""
+              Sepro18 Interpreter
 
+              Type 'help' for help, 'exit' to quit the interpreter.
+
+              """)
+
+        while true {
+            guard let line = linenoise("> ") else {
+                // We got ^D
+                break
+            }
+
+            let commandString: String = String(cString: line)
+
+            shell.interpret(source: commandString)
+
+            if shell.shouldStop {
+                break
+            }
+
+            linenoiseHistoryAdd(commandString)
         }
-    }
+        print("Bye!")
 
-    return ParsedArguments(options: options, positional: positional)
-}
-
-struct FileOutputStream: TextOutputStream {
-    let handle: FileHandle
-
-    func write(_ string: String) {
-        if let data = string.data(using: .utf8) {
-            handle.write(data)
-        }
-        else {
-            fatalError("Can't convert string to data: \(string)")
-        }
     }
 }
 
-func errorExit(_ message: String) -> Never {
-    var stderrStream = FileOutputStream(handle: FileHandle.standardError)
-    print("ERROR: \(message)", to: &stderrStream)
-    exit(1)
-}
-
-func printVersion() -> Never {
-    print(SEPRO_VERSION)
-    exit(0)
-}
-
-func main() {
-    let args = parseArguments(args: CommandLine.arguments)
-    let modelFile: String
-    let outPath: String = args.options["output", default: "out"]
-    let dumpSymbols: Bool = args.options["dump_symbols"] == "true"
-    let worldName: String = args.options["world", default: "main"]
-
-    guard args.positional.count == 2 else {
-        usage()
-        return
-    }
-
-    guard let stepCount = Int(args.positional[1]) else {
-        errorExit("Invalid number of steps '\(args.positional[1])'")
-    }
-
-    // Load and Compile model
-    // -----------------------------------------------------------------------
-    modelFile = args.positional[0]
-
-
-    let tool = Tool(modelPath: modelFile, outputPath: outPath)
-
-    if dumpSymbols {
-        tool.printSymbolTable()
-    }
-
-    // Initialize the simulator
-    // -----------------------------------------------------------------------
-    // FIXME: Untie this initialization
-    guard tool.model.worlds[worldName] != nil else {
-        errorExit("No world with name '\(worldName)' found")
-    }
-    tool.initializeWorld(worldName)
-    tool.run(stepCount: stepCount)
-}
-
-main()
+group.run()

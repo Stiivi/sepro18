@@ -12,11 +12,13 @@ let package = Package(
             targets: ["Tool"]),
         .library(
             name: "Sepro",
-            targets: ["Simulation", "Compiler"])
+            targets: ["Simulation", "Compiler"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Stiivi/DotWriter.git", from: "0.1.0"),
-        .package(url: "https://github.com/AgentFarms/ObjectGraph.git", from: "0.1.2")
+        .package(url: "https://github.com/AgentFarms/ObjectGraph.git", from: "0.1.2"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/kylef/Commander.git", from: "0.8.0"),
     ],
     targets: [
         .target(
@@ -27,15 +29,33 @@ let package = Package(
             dependencies: []),
         .target(
             name: "Compiler",
-            dependencies: []),
+            dependencies: ["Model"]),
         .target(
             name: "Simulation",
             dependencies: ["Model", "Simulator", "ObjectGraph"]),
         .target(
             name: "Tool",
-            dependencies: ["Compiler", "Simulation", "DotWriter"]),
+            dependencies: [
+                "Linenoise",
+                "Commander",
+                "Shell",
+                "Compiler",
+                "Simulation",
+                "DotWriter",
+                "Logging",
+            ]),
+        .target(
+            name: "Shell",
+            dependencies: [
+                "Compiler",
+                "Simulation",
+                "Logging",
+            ]),
+        .target(
+            name: "Linenoise",
+            dependencies: []),
         .testTarget(
-            name: "Sepro18Tests",
-            dependencies: ["Compiler", "Simulation"])
+            name: "CompilerTests",
+            dependencies: ["Compiler"])
     ]
 )

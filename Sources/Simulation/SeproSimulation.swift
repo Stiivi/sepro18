@@ -39,7 +39,7 @@ public class SeproSimulation: IterativeSimulation {
         // ---------------
         // FIXME: Those inner conditions are not 100% right - what if an object
         // has been changed in a way that it has to be considered?
-        for (label, actuator) in model.unaryActuators {
+        for (_, actuator) in model.unaryActuators {
             for oid in state.select(actuator.selector) {
                 if !state.matches(oid, selector: actuator.selector) {
                     // The object has been modified through some of the rules,
@@ -69,7 +69,7 @@ public class SeproSimulation: IterativeSimulation {
         // Binary actuators
         // ----------------
 
-        for (label, actuator) in model.binaryActuators {
+        for (_, actuator) in model.binaryActuators {
             let leftOnes = state.select(actuator.leftSelector)
             let rightOnes = state.select(actuator.rightSelector)
 

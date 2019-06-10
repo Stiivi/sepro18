@@ -28,7 +28,7 @@ Command `sepro MODEL STEPS` runs the model for given number of steps and
 generates output into `./out/dots`.
 
 ```
-swift run Models/linker.sepro 10
+swift run sepro run Models/linker.sepro 10
 ```
 
 Other options for the command-line tool:
