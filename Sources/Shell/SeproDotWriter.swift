@@ -1,107 +1,20 @@
-import Compiler
-import Simulator
-import Simulation
 import DotWriter
+
+// Iterative Simulator
+import Simulator
+
+// SeproSimulation for typealias
+import Simulation
+// DataItem
 import Model
 
-import Foundation
-import Logging
+// FIXME: Remove this
+typealias _SeproSimulator = IterativeSimulator<SeproSimulation>
 
-final class Tool {
-
-    let logger = Logger(label: "sepro.main")
-    
-	let outputPath: String
-    let dotsPath: String
-
-    let simulator: IterativeSimulator<SeproSimulation>
-    public let model: Model
-
-	init(modelPath: String, outputPath: String) {
-        let model = Model()
-
-        let compiler = ModelCompiler(model: model)
-        let source: String
-
-        self.model = model
-
-        logger.info("Loading model from \(modelPath)...")
-
-        do {
-            source = try String(contentsOfFile: modelPath, encoding:String.Encoding.utf8)
-        } catch {
-            logger.error("Unable to read model '\(modelPath)'")
-            exit(1)
-        }
-
-        logger.info("Compiling model...")
-
-        compiler.compile(source: source)
-
-        logger.info("Model compiled")
-        logger.info("    Symbol count    : \(model.symbols.count)")
-        logger.info("    Unary actuators : \(model.unaryActuators.count)")
-        logger.info("    Binary actuators: \(model.unaryActuators.count)")
-
-        let simulation = SeproSimulation(model: model)
-        simulator = IterativeSimulator(simulation: simulation)
-
-        self.outputPath = outputPath
-        dotsPath = outputPath + "/dots"
-	}
-
-    func run(stepCount: Int) {
-        prepareOutput()
-
-        // Write initial state
-		writeDot(path: dotFileName(sequence: simulator.stepCount))
-
-        // Run the simulation
-        // -----------------------------------------------------------------------
-        simulator.run(steps: stepCount) { (_, signal) in
-            if !signal.traps.isEmpty {
-                print("Traps: \(signal.traps)")
-            }
-            if !signal.notifications.isEmpty {
-                print("Notifications: \(signal.notifications)")
-            }
-
-            self.writeDot(path: self.dotFileName(sequence: self.simulator.stepCount))
-        }
-
-    }
-
-	func dotFileName(sequence: Int) -> String {
-		let name = String(format: "%06d.dot", sequence)
-		return "\(dotsPath)/\(name)"
-	}
-
-	func prepareOutput() {
-        // Create output directories
-        // -----------------------------------------------------------------------
-        let fileManager = FileManager.default
-
-        do {
-            try fileManager.createDirectory(atPath:outputPath,
-                                            withIntermediateDirectories: true)
-        }
-        catch {
-            fatalError("Unable to create output directory '\(outputPath)'")
-        }
-
-        do {
-            try fileManager.createDirectory(atPath:dotsPath,
-                                            withIntermediateDirectories: true)
-        }
-        catch {
-            fatalError("Unable to create dot files directory '\(dotsPath)'")
-        }
-
-		writeDot(path: dotFileName(sequence: simulator.stepCount))
-	}
-
-    func writeDot(path: String) {
-        let writer = DotWriter(path: path,
+// TODO: Include node and arrow styles
+public class SeproDotWriter {
+    func write(to outputPath: String, simulator: _SeproSimulator) {
+        let writer = DotWriter(path: outputPath,
                                name: "g",
                                type: .directed)
         let graph = simulator.simulation.state.graph
@@ -145,6 +58,7 @@ final class Tool {
 
         writer.close()
     }
+
 	/// Write object node and it's relationships from slots. Nodes
 	/// are labelled with object ids.
 	func writeObject(oid: OID, object: SimulationState.ObjectState,

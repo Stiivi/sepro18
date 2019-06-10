@@ -1,5 +1,3 @@
-// TODO: This is preliminary implementation of the tool.
-//
 import Foundation
 import Logging
 import Commander
@@ -20,8 +18,8 @@ let group = Group {
         Option("world", default: "main", flag: "w"),
         Argument<String>("model"),
         Argument<Int>("steps")
-    ) { (output_dir, world_name, modelPath, steps) in
-        let shell = Shell()
+        ) { (outputURL, worldName, modelPath, steps) in
+        let shell = Shell(outputURL: outputURL)
 
         shell.importModel(path: modelPath)
         shell.runSimulation(steps: steps)
@@ -33,9 +31,9 @@ let group = Group {
         Argument<String>("model",
         description: "Dump symbol table of a model")
 
-    ) { (modelPath) in
+        ) { (modelPath) in
         let shell = Shell()
-    
+
         shell.importModel(path: modelPath)
         shell.printSymbolTable()
     }
@@ -48,8 +46,10 @@ let group = Group {
 
     // Shell
     // =====
-    $0.command("shell") {
-        let shell = Shell()
+    $0.command("shell",
+        Option("output", default: ".", flag:"o")
+        ) { (outputURL) in
+        let shell = Shell(outputURL: outputURL)
 
         print("""
               Sepro18 Interpreter
@@ -58,7 +58,7 @@ let group = Group {
 
               """)
 
-        while(true) {
+        while true {
             guard let line = linenoise("> ") else {
                 // We got ^D
                 break

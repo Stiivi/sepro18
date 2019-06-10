@@ -4,28 +4,50 @@ import Simulator
 import Simulation
 import Model
 
+
+// TODO: handle errors
+// TODO: Consolidate logging
+// TODO: Consolidate printing output
+
 public final class Shell {
     let logger = Logger(label: "sepro.main")
-
+    let boo = 1234
     // Interpreter context
     let model: Model
     let simulator: IterativeSimulator<SeproSimulation>
+
+    let outputURL: String?
+    let outputs: [CaptureOutput]
 
     public internal(set) var shouldStop: Bool
 
     /// Create an empty shell with an empty model, empty simulation and a
     /// simulator.
     ///
-    public convenience init() {
+    public convenience init(outputURL: String? = nil) {
         let simulation = SeproSimulation(model: Model())
         let simulator = IterativeSimulator(simulation: simulation)
-        self.init(simulator: simulator)
+        self.init(outputURL: outputURL, simulator: simulator)
     }
 
-    public init(simulator: IterativeSimulator<SeproSimulation>) {
+    public init(outputURL: String?, simulator: IterativeSimulator<SeproSimulation>) {
         shouldStop = false
+        self.outputURL = outputURL
         self.simulator = simulator
         self.model = self.simulator.simulation.model
+
+        if let outputURL = outputURL {
+            // FIXME: Use proper path building functions
+            let snapshotPath = outputURL + "/scene.dot"
+            let sequencePath = outputURL // TODO: Let's check for dots/ here
+            self.outputs = [
+                DotGraphFileSnapshot(path:snapshotPath, simulator: simulator),
+                DotGraphFileSequence(path:sequencePath, simulator: simulator)
+            ]
+        }
+        else {
+            self.outputs = []
+        }
     }
 
     public func printError(_ message: String) {
@@ -88,6 +110,11 @@ public final class Shell {
 
         let stepsRun: Int
 
+        outputs.forEach { $0.willBeginCapture() }
+
+        // Write initial state
+        self.outputs.forEach { $0.captureScene() }
+
         stepsRun = simulator.run(steps: steps) { (_, signal) in
             if !signal.traps.isEmpty {
                 print("Traps: \(signal.traps)")
@@ -95,7 +122,12 @@ public final class Shell {
             if !signal.notifications.isEmpty {
                 print("Notifications: \(signal.notifications)")
             }
+
+            // TODO: Capture notifications and traps as well.
+            self.outputs.forEach { $0.captureScene() }
         }
+
+        outputs.forEach { $0.finalizeCapture() }
 
         print("Simulation run for \(stepsRun) steps")
     }
@@ -154,6 +186,12 @@ public final class Shell {
 
         logger.info("Compiling model...")
         compiler.compile(source: source)
+
+        logger.info("Model compiled")
+        logger.info("    Symbol count    : \(model.symbols.count)")
+        logger.info("    Unary actuators : \(model.unaryActuators.count)")
+        logger.info("    Binary actuators: \(model.unaryActuators.count)")
+
     }
 
     /// Prints symbol table of the current model
