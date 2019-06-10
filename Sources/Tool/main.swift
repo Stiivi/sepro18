@@ -21,8 +21,13 @@ let group = Group {
         ) { (outputURL, worldName, modelPath, steps) in
         let shell = Shell(outputURL: outputURL)
 
+        logger.info("Importing model \(modelPath)")
         shell.importModel(path: modelPath)
+        // TODO: Check for it's existence
+        shell.createWorld(worldName)
+        logger.info("Running...")
         shell.runSimulation(steps: steps)
+        logger.info("Done.")
     }
 
     // Symbols

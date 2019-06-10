@@ -209,7 +209,7 @@ public final class Shell {
 
     /// Create objects from worls.
     ///
-    func createWorld(_ name: String) {
+    public func createWorld(_ name: String) {
         guard model.worlds[name] != nil else {
             logger.error("No world with name '\(name)' found")
             // FIXME: Better exit
@@ -217,6 +217,4 @@ public final class Shell {
         }
         simulator.simulation.createWorld(name)
     }
-
-
 }
